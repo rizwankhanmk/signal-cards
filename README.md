@@ -25,7 +25,13 @@ The app runs on Vercel with no build step: Vercel serves `public/` and runs the 
 1. In Vercel, import this GitHub repository. Framework preset: Other. Leave the build settings empty.
 2. Add one environment variable, `SEC_USER_AGENT`, with the same value as in your `.env`
    (a name and a contact email). It is set in Vercel, never committed.
-3. Deploy. Vercel redeploys on every push to `main`.
+   Tick all three environments: Production, Preview and Development. A preview link only gets the
+   variable if Preview is ticked, and the main site only gets it if Production is.
+3. Deploy. Vercel redeploys on every push to `main`. A changed variable only takes effect on the
+   next deployment, so redeploy (or push) after adding it.
+
+If the page says "Missing SEC_USER_AGENT", the variable is not set for that environment, or the site
+has not been redeployed since it was added.
 
 Online, each company's answer is kept by Vercel's network for a day, so the SEC is asked about once per
 company per day. `local-server.mjs` is only for running the app on your own computer.
