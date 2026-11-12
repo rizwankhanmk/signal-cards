@@ -21,6 +21,7 @@ How it works:
 ## Look and voice
 
 - Calm layout: one idea per screen, one big number, lots of white space. Greys `#1d1d1f`, `#6e6e73`, `#f5f5f7`. Inter font.
+- The home screen headline changes with the day of the week. The seven lines are in `MOTTOS` in `index.html`.
 - Light and dark: follows your computer's setting; the button in the top corner overrides it.
 - Type a ticker, see the company and fiscal year, then eight tiles. Tap a tile to open that card on its own screen.
   Arrow keys move between cards, Esc goes back to the eight.

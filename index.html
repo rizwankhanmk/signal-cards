@@ -122,7 +122,7 @@
 
   <main>
     <section class="ask" id="ask">
-      <p class="motto">Just assume tomorrow is the exam.</p>
+      <p class="motto" id="motto">Money talks. Learn to listen.</p>
       <p class="lede">Type a company. Read its annual report in eight numbers.</p>
       <form id="form">
         <div class="box">
@@ -166,6 +166,18 @@
   const day = iso => { const [y, m, d] = iso.slice(0, 10).split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
   const mark = tone => tone ? `<i class="mark ${esc(tone)}" aria-hidden="true"></i>` : "";
   const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
+
+  // ---------- The headline: one line for each day of the week ----------
+  const MOTTOS = [
+    "Just assume tomorrow is the exam.",        // Sunday
+    "Money talks. Learn to listen.",            // Monday
+    "Let the numbers do the talking.",          // Tuesday
+    "Every company's money tells a story.",     // Wednesday
+    "Follow the money.",                        // Thursday
+    "The numbers don't do spin.",               // Friday
+    "Read the money, not the headlines.",       // Saturday
+  ];
+  $("motto").textContent = MOTTOS[new Date().getDay()];
 
   // ---------- Light and dark ----------
   // Follows the computer's setting until you press the button; then it remembers your choice.
