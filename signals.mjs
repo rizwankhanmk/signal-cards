@@ -200,6 +200,68 @@ function roaLabel(change, thisR, lastR, steady) {
   return same("Neutral / watch", `It earned ${money(thisR)} for every $100 of assets. Last year: ${money(lastR)}. Steady.`);
 }
 
+// ---------- The rules, written out ----------
+// Each card can show the table its label came from, with the row that applied marked.
+// Every row is: what has to be true, the label it gives, and the test. The first row that passes wins.
+// These repeat the label functions above in table form; a test checks the two always agree.
+const RULES = {
+  pace: (s, i, gap = round1(i - s)) => [
+    ["Sales up or flat, the item down or flat", "Most favourable", s >= 0 && i <= 0],
+    [`Both up, within ${KEEPING_PACE_PP} points of each other`, "Neutral / watch", s >= 0 && Math.abs(gap) <= KEEPING_PACE_PP],
+    [`Both up, the item more than ${KEEPING_PACE_PP} points slower than sales`, "Good", s >= 0 && gap < 0],
+    [`Both up, the item more than ${KEEPING_PACE_PP} points faster than sales`, "Warning", s >= 0],
+    ["Sales down, the item up or flat", "Risk rising", i >= 0],
+    [`Both down, within ${ABOUT_SAME_PP} points of each other`, "Neutral / watch", Math.abs(gap) <= ABOUT_SAME_PP],
+    [`Both down, the item falling more than ${ABOUT_SAME_PP} points faster than sales`, "Good", gap < 0],
+    [`Both down, the item falling more than ${ABOUT_SAME_PP} points slower than sales`, "Warning", true],
+  ],
+  invest: (s, i) => [
+    ["Sales up or flat, spending cut", "Warning", s >= 0 && i < 0],
+    ["Sales up or flat, spending up more than double the sales rate", "Neutral / watch", s >= 0 && i > BIG_BET_TIMES * s],
+    ["Sales up or flat, spending flat or up, no more than double the sales rate", "Good", s >= 0],
+    ["Sales down, whatever spending does", "Neutral / watch", true],
+  ],
+  margin: (s, change) => [
+    [`Margin within ${MARGIN_STEADY_PP} points of last year`, "Neutral / watch", Math.abs(change) <= MARGIN_STEADY_PP],
+    [`Margin up more than ${MARGIN_STEADY_PP} points, sales up or flat`, "Most favourable", change > 0 && s >= 0],
+    [`Margin up more than ${MARGIN_STEADY_PP} points, sales down`, "Good", change > 0],
+    [`Margin down more than ${MARGIN_STEADY_PP} points, sales up or flat`, "Warning", s >= 0],
+    [`Margin down more than ${MARGIN_STEADY_PP} points, sales down`, "Risk rising", true],
+  ],
+  tax: change => [
+    [`Tax rate within ${TAX_STEADY_PP} points of last year`, "Good", Math.abs(change) <= TAX_STEADY_PP],
+    [`Tax rate down more than ${TAX_STEADY_PP} points`, "Neutral / watch", change < 0],
+    [`Tax rate up more than ${TAX_STEADY_PP} points`, "Warning", true],
+  ],
+  cash: r => [
+    [`$${CASH_GOOD} or more of cash for every $100 of profit`, "Good", r >= CASH_GOOD],
+    [`$${CASH_WATCH} to under $${CASH_GOOD}`, "Neutral / watch", r >= CASH_WATCH],
+    [`Under $${CASH_WATCH}`, "Warning", true],
+  ],
+  fcf: (change, m) => [
+    ["Free cash flow zero or negative", "Warning", m <= 0],
+    [`Positive, but more than ${FCF_THINNER_PP} points lower than last year`, "Neutral / watch", change < -FCF_THINNER_PP],
+    [`Positive, and not more than ${FCF_THINNER_PP} points lower than last year`, "Good", true],
+  ],
+  owes: (change, r) => [
+    ["It owes as much as it owns, or more", "Warning", r >= 100],
+    [`Up more than ${OWES_STEADY_PP} points on last year`, "Warning", change > OWES_STEADY_PP],
+    [`Down more than ${OWES_STEADY_PP} points on last year`, "Good", change < -OWES_STEADY_PP],
+    [`Within ${OWES_STEADY_PP} points of last year`, "Neutral / watch", true],
+  ],
+  roa: (change, r, steady) => [
+    ["The company made a loss", "Warning", r <= 0],
+    [`Up more than ${steady} point${steady === 1 ? "" : "s"} on last year`, "Good", change > steady],
+    [`Down more than ${steady} point${steady === 1 ? "" : "s"} on last year`, "Warning", change < -steady],
+    [`Within ${steady} point${steady === 1 ? "" : "s"} of last year`, "Neutral / watch", true],
+  ],
+};
+// The table for one card, and which row applied.
+export function ruleOf(kind, ...args) {
+  const table = RULES[kind](...args);
+  return { rows: table.map(([when, name]) => [when, name]), hit: table.findIndex(row => row[2]) };
+}
+
 // The last line of a card, one for each reader. Same card, different question.
 // Investor: what to check in the filing before trusting the number. CFO: what to ask inside the business.
 // Never buy or sell advice. Order: [investor, cfo] for good, watch, warn.
@@ -333,14 +395,14 @@ export function buildCards(facts, cik, info = {}) {
     return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${g < 0 ? "−" : ""}${one(Math.abs(g))}%`]), growth_pct: g };
   };
   const industry = info.sicDescription ? ` (SEC industry: ${info.sicDescription})` : "";
-  const noCard = (signal, state, note) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: null, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, ratios: [], status: "Draft", note, big: "—", small: "" });
+  const noCard = (signal, state, note) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: null, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, ratios: [], rule: null, status: "Draft", note, big: "—", small: "" });
   // A missing item is "Doesn't apply" only where we know why; otherwise it is "Not found".
   const missingCard = (signal, missing, financialNote) => financialNote && isFinancial(info.sic)
     ? noCard(signal, "Doesn't apply", `${financialNote}${industry}.`)
     : noCard(signal, "Not found", `Not found in the SEC data for these two years: ${missing.join(", ")}. The company may not report it as its own line. Missing does not mean zero.`);
   // big and small: the one number shown on the tile, and the line under it.
   const nextFor = (signal, label) => { const pair = label && NEXT[signal]?.[TONE[label.name]]; return pair ? { investor: pair[0], cfo: pair[1] } : null; };
-  const card = (signal, rows, label, extra = {}) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: nextFor(signal, label), what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, ratios: [], status: "Draft", big: "—", small: "", ...extra });
+  const card = (signal, rows, label, extra = {}) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: nextFor(signal, label), what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, ratios: [], rule: null, status: "Draft", big: "—", small: "", ...extra });
 
   // 7. The last few years, for context. The label still comes from the latest two years only.
   // Each trend row compares one year with the year before, using the same rules as the label.
@@ -415,7 +477,8 @@ export function buildCards(facts, cik, info = {}) {
     if (!F[key]) return missingCard(signal, [CONCEPTS[key].name], financialNote);
     const row = growthRow(F[key]);
     if (s === null || row.growth_pct === null) return card(signal, [salesRow, row], null, { state: "No label", note: "A growth rate could not be worked out because last year's figure was zero." });
-    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller), ratios: ratiosFor(key) });
+    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller), ratios: ratiosFor(key),
+      rule: ruleOf(key === "capex" || key === "rnd" ? "invest" : "pace", s, row.growth_pct) });
   }
 
   function grossProfit() {
@@ -438,7 +501,7 @@ export function buildCards(facts, cik, info = {}) {
     const grossSeries = F.cost ? seriesOf(F.cost).map((c, k) => c === null ? null : salesSeries[k] - c) : seriesOf(F.gross);
     const margins = grossSeries.map((g, k) => g === null ? null : round1(g / salesSeries[k] * 100));
     const trend = rateTrend("Gross margin", "Kept from each sales dollar", margins, (k, ch, a, b) => salesGrowth(k) === null ? "—" : marginLabel(salesGrowth(k), ch, a, b).name);
-    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year`, trend });
+    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year`, trend, rule: s === null ? null : ruleOf("margin", s, change) });
   }
 
   function taxRate() {
@@ -454,7 +517,7 @@ export function buildCards(facts, cik, info = {}) {
     const [taxes, pretaxes] = [seriesOf(F.tax), seriesOf(F.pretax)];
     const rates = taxes.map((t, k) => t === null || pretaxes[k] === null || pretaxes[k] <= 0 ? null : round1(t / pretaxes[k] * 100));
     const trend = rateTrend("Effective tax rate", "Share of profit paid in tax", rates, (k, ch, a, b) => taxLabel(ch, a, b).name);
-    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend });
+    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend, rule: ruleOf("tax", change) });
   }
 
   // ---------- Cash and debt ----------
@@ -468,10 +531,10 @@ export function buildCards(facts, cik, info = {}) {
   const neg = x => one(x).replace("-", "−");               // −1.5, with a proper minus
   const inBrackets = x => (x < 0 ? `(${neg(x)})` : neg(x)); // so a subtraction reads 1.0 − (−1.5)
   // The last row of a rate card: the rate for each year, how it was worked out, and the change.
-  const rateCard = (signal, rows, name, plain, a, b, howA, howB, small, label, series, labelFor) => {
+  const rateCard = (signal, rows, name, plain, a, b, howA, howB, small, label, series, labelFor, ruleFor) => {
     const change = round1(a - b);
     rows.push(worked(name, plain, `${neg(a)}%`, `${neg(b)}%`, [`${howA} = ${neg(a)}%`, `${howB} = ${neg(b)}%`, `${neg(a)} − ${inBrackets(b)} = ${signed(change)} percentage points`]));
-    return card(signal, rows, label(change), { change_pp: change, big: `${neg(a)}%`, small: `${signed(change)} points on last year`, measure: small, trend: rateTrend(name, plain, series, labelFor) });
+    return card(signal, rows, label(change), { change_pp: change, big: `${neg(a)}%`, small: `${signed(change)} points on last year`, measure: small, trend: rateTrend(name, plain, series, labelFor), rule: ruleFor(change) });
   };
 
   function cashFromProfit() {
@@ -483,7 +546,7 @@ export function buildCards(facts, cik, info = {}) {
     const [ra, rb] = [round1(ca / na * 100), round1(cb / nb * 100)];
     const [cs, ns] = [seriesOf(F.ocf), seriesOf(F.netincome)];
     const series = cs.map((c, k) => c === null || ns[k] === null || ns[k] <= 0 ? null : round1(c / ns[k] * 100));
-    return rateCard("Cash from profit", rows, "Cash against profit", "Cash as a share of profit", ra, rb, `${fmt(ca)} ÷ ${fmt(na)} × 100`, `${fmt(cb)} ÷ ${fmt(nb)} × 100`, "of profit came in as cash", () => cashLabel(ra), series, (k, ch, a) => cashLabel(a).name);
+    return rateCard("Cash from profit", rows, "Cash against profit", "Cash as a share of profit", ra, rb, `${fmt(ca)} ÷ ${fmt(na)} × 100`, `${fmt(cb)} ÷ ${fmt(nb)} × 100`, "of profit came in as cash", () => cashLabel(ra), series, (k, ch, a) => cashLabel(a).name, () => ruleOf("cash", ra));
   }
 
   function freeCashFlow() {
@@ -496,7 +559,7 @@ export function buildCards(facts, cik, info = {}) {
       worked("Free cash flow", "Cash left over", fmt(fa), fmt(fb), [`${fmt(ca)} − ${fmt(xa)} = ${fmt(fa)}`, `${fmt(cb)} − ${fmt(xb)} = ${fmt(fb)}`])];
     const [cs, xs] = [seriesOf(F.ocf), seriesOf(F.capex)];
     const series = cs.map((c, k) => c === null || xs[k] === null ? null : round1((c - xs[k]) / salesSeries[k] * 100));
-    return rateCard("Free cash flow", rows, "Free cash flow margin", "Cash left over as a share of sales", ma, mb, `${fmt(fa)} ÷ ${fmt(sa)} × 100`, `${fmt(fb)} ÷ ${fmt(sb)} × 100`, "of sales left as free cash", ch => fcfLabel(ch, ma, mb), series, (k, ch, a, b) => fcfLabel(ch, a, b).name);
+    return rateCard("Free cash flow", rows, "Free cash flow margin", "Cash left over as a share of sales", ma, mb, `${fmt(fa)} ÷ ${fmt(sa)} × 100`, `${fmt(fb)} ÷ ${fmt(sb)} × 100`, "of sales left as free cash", ch => fcfLabel(ch, ma, mb), series, (k, ch, a, b) => fcfLabel(ch, a, b).name, ch => ruleOf("fcf", ch, ma));
   }
 
   function whatItOwes() {
@@ -509,7 +572,7 @@ export function buildCards(facts, cik, info = {}) {
       worked("Liabilities", "Everything it owes", fmt(la), fmt(lb), [`${fmt(aa)} − ${ea < 0 ? `(${fmt(ea)})` : fmt(ea)} = ${fmt(la)}`, `${fmt(ab)} − ${eb < 0 ? `(${fmt(eb)})` : fmt(eb)} = ${fmt(lb)}`])];
     const [as, es] = [seriesOf(F.assets), seriesOf(F.equity)];
     const series = as.map((a, k) => a === null || es[k] === null || a <= 0 ? null : round1((a - es[k]) / a * 100));
-    return rateCard("What it owes", rows, "Liabilities as a share of assets", "Share of assets funded by what it owes", ra, rb, `${fmt(la)} ÷ ${fmt(aa)} × 100`, `${fmt(lb)} ÷ ${fmt(ab)} × 100`, "of assets funded by what it owes", ch => owesLabel(ch, ra, rb), series, (k, ch, a, b) => owesLabel(ch, a, b).name);
+    return rateCard("What it owes", rows, "Liabilities as a share of assets", "Share of assets funded by what it owes", ra, rb, `${fmt(la)} ÷ ${fmt(aa)} × 100`, `${fmt(lb)} ÷ ${fmt(ab)} × 100`, "of assets funded by what it owes", ch => owesLabel(ch, ra, rb), series, (k, ch, a, b) => owesLabel(ch, a, b).name, ch => ruleOf("owes", ch, ra));
   }
 
   function returnOnAssets() {
@@ -521,7 +584,7 @@ export function buildCards(facts, cik, info = {}) {
     const rows = [inputRow(F.netincome), inputRow(F.assets)];
     const [ns, as] = [seriesOf(F.netincome), seriesOf(F.assets)];
     const series = ns.map((n, k) => n === null || as[k] === null || as[k] <= 0 ? null : round1(n / as[k] * 100));
-    return rateCard("Return on assets", rows, "Return on assets", "What the assets earn", ra, rb, `${fmt(na)} ÷ ${fmt(aa)} × 100`, `${fmt(nb)} ÷ ${fmt(ab)} × 100`, "earned on its assets", ch => roaLabel(ch, ra, rb, steady), series, (k, ch, a, b) => roaLabel(ch, a, b, steady).name);
+    return rateCard("Return on assets", rows, "Return on assets", "What the assets earn", ra, rb, `${fmt(na)} ÷ ${fmt(aa)} × 100`, `${fmt(nb)} ÷ ${fmt(ab)} × 100`, "earned on its assets", ch => roaLabel(ch, ra, rb, steady), series, (k, ch, a, b) => roaLabel(ch, a, b, steady).name, ch => ruleOf("roa", ch, ra, steady));
   }
 
   const cards = [

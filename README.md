@@ -80,6 +80,14 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - On a phone the bottom bar has Previous in the left corner and Next in the right on every card, greyed out
   at either end. On a computer a "Next" button sits under each revealed card. When every card is flipped, the
   app suggests three more companies.
+- A revealed card shows the label, the line and the reader's line. The proof is folded into rows you tap to
+  open: The numbers, What an analyst would quote, The last few years, and How this label is decided (the rule
+  table with the row that applied marked). The rows you open stay open on the next card.
+- Dots at the top of a card show where you are; each takes its colour once its card is revealed. Tap one to jump.
+- A card with nothing to show ("Not found", "Doesn't apply") gets no tile and is skipped by Next and Previous.
+  Each group of tiles ends with a quiet line naming them, and each name opens its reason.
+- After the last card, Next goes to an end screen: your score for the company, what the cards said, and three
+  more companies to read.
 - Moving on from the last of the eight signals stops at a checkpoint: your score for the group, what the
   revealed cards said, and a choice to go on to Cash and debt or back to all cards. Going backwards, or tapping
   a tile directly, skips it.

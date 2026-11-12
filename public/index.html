@@ -65,6 +65,36 @@
   .deckhead { grid-column: 1 / -1; font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 22px 0 2px; }
   .cmp .deckhead { margin: 44px 0 0; padding-top: 22px; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); color: var(--muted); }
   .reading { font-size: 17px; font-weight: 500; margin: 14px 0 0; }
+  /* Proof that stays folded until you want it: one tappable row per section */
+  .folds { border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); margin-top: 8px; }
+  .fold { border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+  .fold summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; cursor: pointer; list-style: none;
+                  font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+  .fold summary::-webkit-details-marker { display: none; }
+  .fold summary::after { content: ""; width: 9px; height: 9px; flex: none; margin-right: 4px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+                         transform: rotate(45deg) translate(-2px, -2px); transition: transform .15s ease; }
+  .fold[open] summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+  .fold-body { padding: 0 0 22px; }
+  .fold-body table { margin-top: 0; }
+  table.rules tr.hit td { font-weight: 600; background: var(--surface); }
+  table.rules td, table.rules th { padding-left: 10px; }
+  .thisone { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; background: var(--text); color: var(--bg); }
+  /* Progress dots at the top of a card */
+  .dots { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; margin: 0 0 2px; }
+  .dot { position: relative; width: 22px; height: 30px; padding: 0; border: 0; background: none; cursor: pointer; }
+  .dot::before { content: ""; position: absolute; left: 50%; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
+                 box-sizing: border-box; border: 1.5px solid var(--muted); }
+  .dot.none::before { background: var(--muted); opacity: .45; }
+  .dot.good::before { background: var(--good); border-color: var(--good); }
+  .dot.watch::before { background: var(--watch); border-color: var(--watch); }
+  .dot.warn::before { background: var(--warn); border-color: var(--warn); }
+  .dot.here::before { width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px; box-shadow: 0 0 0 3px var(--bg), 0 0 0 4.5px var(--text); }
+  .dotgap { width: 12px; }
+  @media (max-width: 370px) { .dot { width: 19px; } .dotgap { width: 8px; } }
+  /* The quiet line for cards with nothing to show */
+  .quiet { grid-column: 1 / -1; font-size: 13px; color: var(--muted); margin: 2px 0 0; }
+  .linkish { background: none; border: 0; padding: 6px 0; font: inherit; color: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  .cp-tries { margin-top: 10px; }
   /* The checkpoint between two groups of cards */
   .cp-title { font-size: clamp(34px, 7vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0; text-wrap: balance; }
   .cp-score { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; margin: 22px 0 0; }
@@ -392,7 +422,7 @@
   // "Tap" on a touch screen, "Click" with a mouse.
   const TAP = matchMedia("(hover: none)").matches ? "Tap" : "Click";
   // The data shape this page understands. Must match VERSION in sec.mjs; a test checks that it does.
-  const PAGE_VERSION = 11;
+  const PAGE_VERSION = 12;
 
   // ---------- The headline: one line for each day of the week ----------
   const MOTTOS = [
@@ -510,21 +540,33 @@
     render();
     scrollTo(0, 0);
   };
-  // Next and Previous, from wherever you are. Moving on from the last card of a group stops at a checkpoint first.
+  // The cards worth stepping through: the ones with numbers to show. A card with nothing to show
+  // ("Not found", "Doesn't apply") is left out of Next and Previous, and listed quietly on the tiles screen.
+  const live = d => d.cards.map((c, i) => i + 1).filter(n => d.cards[n - 1].rows.length);
+  // Next and Previous, from wherever you are. Moving on from the last card of a group stops at a
+  // checkpoint first, and moving on from the very last card goes to the end screen.
   const forward = () => {
     const { ticker, card, after } = where();
     if (!data) return;
-    if (after) return go(ticker, after + 1);
-    if (!card || card >= data.cards.length) return;
-    if (data.cards[card].deck !== data.cards[card - 1].deck) return go(ticker, 0, undefined, card);
-    go(ticker, card + 1);
+    const from = after || card, nextN = live(data).find(n => n > from);
+    if (!from) return;
+    if (after) return nextN ? go(ticker, nextN) : undefined;          // the end screen has nothing after it
+    if (!nextN || data.cards[nextN - 1].deck !== data.cards[card - 1].deck) return go(ticker, 0, undefined, card);
+    go(ticker, nextN);
   };
   const back = () => {
     const { ticker, card, after } = where();
     if (!data) return;
     if (after) return go(ticker, after);
-    if (card > 1) go(ticker, card - 1);
+    const prevN = [...live(data)].reverse().find(n => n < card);
+    if (prevN) go(ticker, prevN);
   };
+  // Which folded sections of a card you have opened. Kept for this sitting, so it carries from card to card.
+  // On a wide screen "The numbers" starts open; on a phone everything starts folded.
+  let folds = null;
+  try { folds = JSON.parse(sessionStorage.getItem("sc:folds")); } catch {}
+  if (!folds || typeof folds !== "object") folds = { numbers: matchMedia("(min-width: 700px)").matches };
+  const isOpen = key => !!folds[key];
   const fail = (title, why) => {
     data = other = null;
     $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false; $("switches").hidden = true;
@@ -605,8 +647,15 @@
     $("company").textContent = d.company;
     $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
     $("headnote").hidden = !d.note; $("headnote").textContent = d.note || "";
-    // The tiles, in their groups: the eight signals, then cash and debt.
-    $("grid").innerHTML = d.cards.map((c, i) => `${i && c.deck !== d.cards[i - 1].deck ? `<h3 class="deckhead">${esc(c.deck)}</h3>` : ""}${tile(d, i + 1)}`).join("");
+    // The tiles, in their groups: the eight signals, then cash and debt. A card with nothing to show
+    // gets no tile; each group ends with one quiet line naming them, and each name opens its reason.
+    $("grid").innerHTML = [...new Set(d.cards.map(c => c.deck))].map((deck, g) => {
+      const nums = d.cards.map((c, i) => i + 1).filter(n => d.cards[n - 1].deck === deck);
+      const shown = nums.filter(n => d.cards[n - 1].rows.length), empty = nums.filter(n => !d.cards[n - 1].rows.length);
+      const names = empty.map(n => `<button class="linkish" type="button" data-card="${n}">${esc(W(d.cards[n - 1], "signal"))}</button> <span>(${esc(d.cards[n - 1].state.toLowerCase())})</span>`).join(", ");
+      return `${g ? `<h3 class="deckhead">${esc(deck)}</h3>` : ""}${shown.map(n => tile(d, n)).join("")}
+        ${empty.length ? `<p class="quiet">${empty.length === 1 ? "One card has" : `${empty.length} cards have`} nothing to show here: ${names}.</p>` : ""}`;
+    }).join("");
     tileToFlip = 0;
     drawScore(d);
   }
@@ -649,10 +698,12 @@
   // The pause between two groups of cards: how you did, what comes next, and a choice.
   const DECK_BLURB = { "Cash and debt": "Four cards. Did the profit turn into cash? How much is left over? What does it owe? What do its assets earn?" };
   function drawCheckpoint(d, n) {
-    const done = d.cards[n - 1], next = d.cards[n];
-    if (!done || !next || next.deck === done.deck) return go(d.ticker, 0); // not the end of a group
+    const done = d.cards[n - 1], nextN = live(d).find(k => k > n), next = d.cards[nextN - 1];
+    const end = !next;                                                      // nothing left: this is the end screen
+    if (!done || (next && next.deck === done.deck)) return go(d.ticker, 0); // not the end of a group
     const T = d.fiscal.this_year, L = d.fiscal.last_year, g = guesses(d);
-    const nums = d.cards.map((c, i) => i + 1).filter(k => d.cards[k - 1].deck === done.deck && canGuess(d.cards[k - 1]));
+    // The checkpoint scores the group just finished; the end screen scores every card.
+    const nums = d.cards.map((c, i) => i + 1).filter(k => (end || d.cards[k - 1].deck === done.deck) && canGuess(d.cards[k - 1]));
     const left = nums.filter(k => !g[k]).length;
     const tried = nums.filter(k => g[k] && g[k] !== "skip");
     const caught = tried.filter(k => g[k] === d.cards[k - 1].tone).length;
@@ -662,21 +713,24 @@
     const shown = nums.filter(k => g[k]).map(k => d.cards[k - 1].tone);
     const tally = Object.entries(TONES).map(([t, word]) => [t, word, shown.filter(x => x === t).length]).filter(x => x[2])
       .map(([t, word, count]) => `<span>${mark(t)}${count} ${word.toLowerCase()}</span>`).join("");
-    document.title = `${done.deck} · ${d.ticker} · Signal Cards`;
-    $("tabprev").disabled = $("tabnext").disabled = false;
+    document.title = `${end ? "Finished" : done.deck} · ${d.ticker} · Signal Cards`;
+    $("tabprev").disabled = false; $("tabnext").disabled = end;
     $("detail").classList.remove("fresh", "slide-next", "slide-prev");
     if (slide) { void $("detail").offsetWidth; $("detail").classList.add(`slide-${slide}`); slide = ""; }
+    // On the end screen: three other companies to read next.
+    const others = end ? pool.filter(c => c.ticker !== d.ticker).sort(() => Math.random() - .5).slice(0, 3) : [];
     $("detail").innerHTML = `
-      <div class="nav"><span class="muted">${esc(done.deck)} · done</span></div>
+      <div class="nav"><span class="muted">${end ? "Finished" : `${esc(done.deck)} · done`}</span></div>
       <div class="hero checkpoint">
         <p class="kicker">${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
-        <p class="cp-title">That's ${esc(done.deck.charAt(0).toLowerCase() + done.deck.slice(1))}.</p>
+        <p class="cp-title">${end ? "That's every card." : `That's ${esc(done.deck.charAt(0).toLowerCase() + done.deck.slice(1))}.`}</p>
         ${score ? `<p class="cp-score">${esc(score)}</p>` : ""}
         ${tally ? `<p class="cp-tally">${tally}</p>` : ""}
-        <p class="cp-next"><small>Next</small>${esc(next.deck)}. ${esc(DECK_BLURB[next.deck] ?? "")}</p>
+        ${end ? (others.length ? `<p class="cp-next"><small>Read another</small></p><p class="tries cp-tries">${others.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}</p>` : "")
+              : `<p class="cp-next"><small>Next</small>${esc(next.deck)}. ${esc(DECK_BLURB[next.deck] ?? "")}</p>`}
         <div class="cp-actions">
-          <button class="go" type="button" data-forward>Go on to ${esc(next.deck)} →</button>
-          <button class="pill" type="button" data-card="0">Back to all cards</button>
+          ${end ? "" : `<button class="go" type="button" data-forward>Go on to ${esc(next.deck)} →</button>`}
+          <button class="${end ? "go" : "pill"}" type="button" data-card="0">Back to all cards</button>
         </div>
       </div>`;
   }
@@ -687,20 +741,32 @@
   function drawCard(d, n) {
     if (n > d.cards.length) return go(d.ticker, 0); // a link to a card this company does not have
     const c = d.cards[n - 1], T = d.fiscal.this_year, L = d.fiscal.last_year;
-    $("tabprev").disabled = n <= 1;                 // greyed on the first card
-    $("tabnext").disabled = n >= d.cards.length;    // and on the last one
+    const steppable = live(d), place = steppable.indexOf(n);
+    const prevN = [...steppable].reverse().find(k => k < n), nextN = steppable.find(k => k > n);
+    $("tabprev").disabled = !prevN;                 // greyed on the first card
+    $("tabnext").disabled = false;                  // after the last card, Next goes to the end screen
+    // A section of proof that stays folded until you tap it. Which ones you leave open is remembered.
+    const fold = (key, title, body) => `
+      <details class="fold" data-fold="${key}"${isOpen(key) ? " open" : ""}>
+        <summary><span>${esc(title)}</span></summary>
+        <div class="fold-body">${body}</div>
+      </details>`;
     // What an analyst would quote: one or two ratios beside the growth rate.
-    const ratios = c.ratios?.length ? `
-      <div class="proof">
-        <h2>What an analyst would quote</h2>
+    const ratios = c.ratios?.length ? fold("ratios", "What an analyst would quote", `
         <div class="scroll"><table>
           <tr><th>Ratio</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th></tr>
           ${c.ratios.map(r => `<tr><td>${esc(W(r, "name"))}</td><td class="num">${esc(r.this_year)}</td><td class="num">${esc(r.last_year)}</td><td class="f">${r.formula.map(esc).join("<br>")}</td></tr>`).join("")}
         </table></div>
         ${c.ratios.map(r => `<p class="reading">${esc(r.reading)}</p>`).join("")}
-        <p class="note muted">These use the year-end figures as printed. Analysts often average the start and end of the year, which gives slightly different numbers.</p>
-      </div>` : "";
-    const prev = d.cards[n - 2], next = d.cards[n];
+        <p class="note muted">These use the year-end figures as printed. Analysts often average the start and end of the year, which gives slightly different numbers.</p>`) : "";
+    // How the label was decided: the rule table, with the row that applied marked.
+    const rule = c.rule && c.label ? fold("rule", "How this label is decided", `
+        <div class="scroll"><table class="rules">
+          <tr><th>When</th><th>Label</th></tr>
+          ${c.rule.rows.map(([when, name], i) => `<tr${i === c.rule.hit ? ' class="hit"' : ""}><td>${esc(when)}${i === c.rule.hit ? ' <span class="thisone">this card</span>' : ""}</td><td class="lab">${mark(TONE[name])}${esc(name)}</td></tr>`).join("")}
+        </table></div>
+        <p class="note muted">The first row that fits, reading down, gives the label. A label is a first screen, not a verdict.</p>`) : "";
+    const prev = d.cards[prevN - 1], next = d.cards[nextN - 1];
     document.title = `${c.signal} · ${d.ticker} · Signal Cards`;
     const rows = c.rows.map(r => `
       <tr>
@@ -711,24 +777,32 @@
         <td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
       </tr>`).join("");
     // The trend table: the last column is a label, the rest are numbers.
-    const trend = c.trend ? `
-      <div class="proof">
-        <h2>The last ${c.trend.rows.length} years</h2>
+    const trend = c.trend ? fold("trend", `The last ${c.trend.rows.length} years`, `
         <div class="scroll"><table>
           <tr>${W(c.trend, "columns").map((h, i, all) => `<th${i > 0 && i < all.length - 1 ? ' class="num"' : ""}>${esc(h)}</th>`).join("")}</tr>
           ${c.trend.rows.map(r => `<tr>${r.map((v, i) => i === 0 ? `<td>${esc(v)}</td>` : i === r.length - 1 ? `<td class="lab">${mark(TONE[v])}${esc(v)}</td>` : `<td class="num">${esc(v)}</td>`).join("")}</tr>`).join("")}
         </table></div>
-        <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>
-      </div>` : "";
+        <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>`) : "";
     const down = faceDown(d, n), said = guesses(d)[n], checked = !!checks(d)[n];
     const verdict = !canGuess(c) || !said || said === "skip" ? "" : said === c.tone ? "You caught it." : `You said ${TONES[said]}. Missed this one.`;
+    const nextLabel = !next ? "Finish" : next.deck !== c.deck ? next.deck : W(next, "signal"); // where Next leads
     const steps = `
       <div class="steps">
-        ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(W(prev, "signal"))}</button>` : ""}
-        ${next ? `<button type="button" data-forward><small>Next</small>${esc(next.deck !== c.deck ? next.deck : W(next, "signal"))} →</button>` : ""}
+        ${prev ? `<button type="button" data-card="${prevN}"><small>Previous</small>← ${esc(W(prev, "signal"))}</button>` : ""}
+        <button type="button" data-forward><small>Next</small>${esc(nextLabel)} →</button>
       </div>`;
+    // Progress: one dot for each card you can step through, coloured once it is revealed.
+    const dots = steppable.map((k, i) => {
+      const cc = d.cards[k - 1], look = k === n ? " here" : "";
+      const state = !canGuess(cc) ? "none" : faceDown(d, k) ? "down" : cc.tone;
+      const gap = i && cc.deck !== d.cards[steppable[i - 1] - 1].deck ? '<i class="dotgap"></i>' : "";
+      return `${gap}<button class="dot ${state}${look}" type="button" data-card="${k}" aria-label="${esc(W(cc, "signal"))}"${k === n ? ' aria-current="true"' : ""}></button>`;
+    }).join("");
     const top = `
-      <div class="nav"><span class="muted">${esc(c.deck ?? "")} · ${n} of ${d.cards.length}</span></div>
+      <div class="nav">
+        ${place >= 0 ? `<div class="dots" role="group" aria-label="Cards">${dots}</div>` : ""}
+        <span class="muted">${esc(c.deck ?? "")}${place >= 0 ? ` · ${place + 1} of ${steppable.length}` : ""}</span>
+      </div>
       ${swiped ? "" : `<p class="swipe-hint">‹ Swipe left or right for the next card ›</p>`}`;
     const numbers = `
         <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
@@ -743,7 +817,7 @@
         <p class="ask-flag">Good, watch or warning?</p>
         <div class="guess">${Object.entries(TONES).map(([t, word]) => `<button type="button" data-guess="${t}">${mark(t)}${word}</button>`).join("")}</div>
         <p class="what">${esc(c.what)}</p>
-      </div>${steps}`;
+      </div>${place >= 0 ? steps : ""}`;
       return;
     }
     $("detail").innerHTML = `${top}
@@ -753,21 +827,20 @@
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
           ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
-          ${next ? `<button class="pill nextpill" type="button" data-forward>Next: ${esc(next.deck !== c.deck ? next.deck : W(next, "signal"))} →</button>` : ""}
+          ${place >= 0 ? `<button class="pill nextpill" type="button" data-forward>${next ? "Next: " : ""}${esc(nextLabel)} →</button>` : ""}
         </div>
         <p class="what">${esc(c.what)}</p>
       </div>
       ${c.rows.length ? `
-      <hr class="hair">
-      <div class="proof">
-        <h2>The numbers</h2>
+      <div class="folds">
+      ${fold("numbers", `The numbers${checked ? " · checked" : ""}`, `
         <div class="scroll"><table>
           <tr><th>Item</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th><th>Source</th></tr>
           ${rows}
         </table></div>
         <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
-        <p class="note muted">${c.rows.some(r => r.this_link) ? `${TAP} a number to open the filing at that number, highlighted. ` : ""}A label is a first screen, not a verdict.</p>
-      </div>${ratios}${trend}` : ""}${steps}`;
+        <p class="note muted">${c.rows.some(r => r.this_link) ? `${TAP} a number to open the filing at that number, highlighted.` : ""}</p>`)}${ratios}${trend}${rule}
+      </div>` : ""}${place >= 0 ? steps : ""}`;
     justFlipped = 0;
   }
 
@@ -885,6 +958,13 @@
     prefs[b.dataset.pref] = b.dataset.val;
     store.set("sc:prefs", prefs); paintPrefs(); render();
   });
+  // Remember which folded sections are open, so they stay that way on the next card.
+  $("detail").addEventListener("toggle", e => {
+    const key = e.target.dataset?.fold;
+    if (!key) return;
+    folds[key] = e.target.open;
+    try { sessionStorage.setItem("sc:folds", JSON.stringify(folds)); } catch {}
+  }, true);
   document.addEventListener("change", e => {
     if (e.target.id !== "checked" || !data) return;
     const { card } = where();
