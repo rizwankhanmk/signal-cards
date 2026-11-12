@@ -29,7 +29,16 @@
   .hair { border: 0; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
 
   /* Top bar */
-  .bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; }
+  /* The bar stays at the top as you scroll, so Home and All eight are always one tap away */
+  .bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; font-size: 14px;
+         position: sticky; top: 0; z-index: 6; background: var(--bg); }
+  .barnav { display: flex; align-items: center; gap: 8px; }
+  .pill { background: var(--surface); border: 0; border-radius: 999px; padding: 0 16px; min-height: 40px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap; position: relative; }
+  .pill::after { content: ""; position: absolute; inset: -2px 0; } /* a 44-point area to tap */
+  .pill:hover { outline: 1px solid var(--text); }
+  .barnav .ghost { margin-left: 6px; }
+  .brand { white-space: nowrap; }
+  @media (max-width: 370px) { .pill { padding: 0 11px; font-size: 13px; } .barnav { gap: 5px; } .barnav .ghost { margin-left: 2px; font-size: 13px; } .bar { gap: 6px; } }
   .brand { font-weight: 600; text-decoration: none; letter-spacing: -.01em; display: inline-flex; align-items: center; min-height: 44px; }
   .ghost { background: none; border: 0; padding: 6px 0; min-height: 44px; cursor: pointer; color: var(--muted); font-size: 14px; }
   .ghost:hover { color: var(--text); }
@@ -145,7 +154,7 @@
   .tick input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--text); border-radius: 4px; }
 
   /* One card, one screen */
-  .nav { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .nav { text-align: center; font-size: 14px; padding: 8px 0 0; }
   .hero { text-align: center; padding: 7vh 0 6vh; }
   .hero .kicker { font-size: 15px; color: var(--muted); margin: 0 0 22px; }
   .hero .big { font-size: clamp(64px, 17vw, 152px); font-weight: 700; letter-spacing: -.055em; line-height: .95; margin: 0; font-variant-numeric: tabular-nums; }
@@ -195,7 +204,7 @@
   .vs .box { width: min(17rem, 100%); }
   .vs input { font-size: 16px; padding: 9px 16px; }
   .cmp-head, .cmp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .cmp-head { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0 12px; }
+  .cmp-head { position: sticky; top: 60px; z-index: 2; background: var(--bg); padding: 10px 0 12px; }
   .cmp-head b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
   .cmp-head span { font-size: 13px; color: var(--muted); }
   .cmp h3 { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 26px 0 10px; }
@@ -214,7 +223,11 @@
 <div class="wrap">
   <div class="bar">
     <a class="brand" href="./" id="home">Signal Cards</a>
-    <button class="ghost" id="theme" type="button" aria-label="Switch between light and dark"></button>
+    <span class="barnav">
+      <button class="pill" type="button" id="gohome" hidden>Home</button>
+      <button class="pill" type="button" id="goall" data-card="0" hidden>All eight</button>
+      <button class="ghost" id="theme" type="button" aria-label="Switch between light and dark"></button>
+    </span>
   </div>
 
   <div class="switches" id="switches" hidden>
@@ -429,6 +442,9 @@
   async function render() {
     const { ticker, card, vs } = where();
     $("ask").classList.toggle("small", !!ticker);
+    $("gohome").hidden = !ticker;                       // anywhere but the home screen
+    $("goall").hidden = !card;                          // on a single card
+    $("goall").textContent = vs ? "Compare" : "All eight";
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
       $("ask").hidden = false; $("overview").hidden = $("detail").hidden = $("switches").hidden = true; $("source").textContent = ""; $("q").value = "";
@@ -530,10 +546,7 @@
         ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(W(next, "signal"))} →</button>` : ""}
       </div>`;
     const top = `
-      <div class="nav">
-        <button class="ghost" type="button" data-card="0">${where().vs ? "← Back to compare" : "← All eight"}</button>
-        <span class="muted">${n} of 8</span>
-      </div>
+      <div class="nav"><span class="muted">${n} of 8</span></div>
       ${swiped ? "" : `<p class="swipe-hint">‹ Swipe left or right for the next card ›</p>`}`;
     const numbers = `
         <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
@@ -632,6 +645,7 @@
 
   // ---------- Clicks and keys ----------
   $("home").addEventListener("click", e => { e.preventDefault(); go(""); $("q").focus(); });
+  $("gohome").addEventListener("click", () => go(""));
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);
