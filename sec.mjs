@@ -4,7 +4,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { buildCards } from "./signals.mjs";
 
-const VERSION = 9;                       // bump when the saved shape changes, so old saved files are refetched
+const VERSION = 10;                       // bump when the saved shape changes, so old saved files are refetched
 const TICKER_LIST = "https://www.sec.gov/files/company_tickers.json";
 const HOURS = 3_600_000;
 // Where saved copies go. On your computer: the data/ folder. On Vercel the project folder is
@@ -138,9 +138,14 @@ export async function cardsFor(rawTicker, UA, { fresh = false } = {}) {
   const source_api = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
   const facts = await getJson(source_api, UA);
   if (!facts) throw new Friendly(`The SEC has no financial data for ${hit.name} (${ticker}).`, 404);
-  const sub = await getJson(`https://data.sec.gov/submissions/CIK${cik}.json`, UA); // industry code; fine if missing
+  const sub = await getJson(`https://data.sec.gov/submissions/CIK${cik}.json`, UA); // industry code and document names; fine if missing
+  // For each recent filing, the name of its main document, so cards can link straight into the 10-K.
+  const recent = sub?.filings?.recent, docs = {};
+  if (Array.isArray(recent?.accessionNumber) && Array.isArray(recent?.primaryDocument)) {
+    recent.accessionNumber.forEach((accn, i) => { const doc = recent.primaryDocument[i]; if (/^[\w.-]+\.html?$/i.test(doc ?? "")) docs[accn] = doc; });
+  }
   let built;
-  try { built = buildCards(facts, cik, { sic: sub?.sic, sicDescription: sub?.sicDescription }); }
+  try { built = buildCards(facts, cik, { sic: sub?.sic, sicDescription: sub?.sicDescription, docs }); }
   catch (e) { throw new Friendly(`${hit.name} (${ticker}): ${e.message}`, 422); }
   const out = { version: VERSION, ticker, cik, fetched_at: new Date().toISOString(), source_api, ...built, company: hit.name, company_sec: facts.entityName };
   await save(file, out);

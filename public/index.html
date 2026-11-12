@@ -136,6 +136,7 @@
   @media (prefers-reduced-motion: reduce) {
     .tile.flipped, .fresh .reveal, .fresh .reveal *, .fresh .hair, .fresh .proof { animation: none !important; }
     .tile, .guess button { transition: none; }
+    #detail.slide-next, #detail.slide-prev { animation: none; }
   }
   .tick { display: flex; gap: 10px; align-items: center; font-size: 15px; margin: 8px 0 0; padding: 10px 0; min-height: 44px; cursor: pointer; width: fit-content; }
   .tick input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--text); border-radius: 4px; }
@@ -163,6 +164,15 @@
   td.f { font-variant-numeric: tabular-nums; white-space: nowrap; }
   td.lab { white-space: nowrap; }
   .note { font-size: 14px; margin: 18px 0 0; }
+  a.chk { text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 4px; text-decoration-color: var(--muted); }
+  a.chk:hover { text-decoration-style: solid; text-decoration-color: currentColor; }
+  /* Moving between cards: the new card slides in from the side you are heading to */
+  @keyframes fromRight { from { transform: translateX(36px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes fromLeft { from { transform: translateX(-36px); opacity: 0; } to { transform: none; opacity: 1; } }
+  #detail.slide-next { animation: fromRight .28s ease both; }
+  #detail.slide-prev { animation: fromLeft .28s ease both; }
+  .swipe-hint { display: none; text-align: center; font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  @media (hover: none) and (pointer: coarse) { .swipe-hint { display: block; } }
   .steps { display: flex; justify-content: space-between; gap: 16px; padding: 44px 0 0; font-size: 15px; }
   .steps button { background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
   .steps button:last-child { text-align: right; margin-left: auto; }
@@ -340,6 +350,7 @@
   let other = null;    // the company it is being compared with, if any
   let justFlipped = 0; // the card that was just guessed, so its reveal plays once
   let tileToFlip = 0;  // the same card's tile, so it turns over once when you go back to the eight
+  let slide = "";      // "next" or "prev" while moving from one card to another, so the new one slides in
   let picking = false; // true for the short beat between tapping a guess and the card turning
   const loaded = {};   // companies already fetched in this visit
   const where = () => {
@@ -352,6 +363,7 @@
   const go = (ticker, card = 0, vs) => {
     const now = where();
     if (vs === undefined) vs = ticker && ticker === now.ticker ? now.vs : "";
+    slide = card && now.card && ticker === now.ticker && card !== now.card ? (card > now.card ? "next" : "prev") : "";
     history.pushState(null, "", ticker ? `?ticker=${encodeURIComponent(ticker)}${card ? `&card=${card}` : ""}${vs ? `&vs=${encodeURIComponent(vs)}` : ""}` : "./");
     render();
     scrollTo(0, 0);
@@ -456,6 +468,9 @@
       : `${tally} <span>${tried.length ? cheer : "All flipped."}</span> <button class="ghost" type="button" id="again">Play again</button>`;
   }
 
+  // A number that links to its place in the filing, when we know where that is.
+  const inFiling = (shown, link) => link ? `<a class="chk" href="${esc(link)}" target="_blank" rel="noopener" title="Open the filing at this number">${esc(shown)}</a>` : esc(shown);
+
   function drawCard(d, n) {
     const c = d.cards[n - 1], T = d.fiscal.this_year, L = d.fiscal.last_year;
     const prev = d.cards[n - 2], next = d.cards[n];
@@ -463,8 +478,8 @@
     const rows = c.rows.map(r => `
       <tr>
         <td>${esc(W(r, "item"))}</td>
-        <td class="num">${esc(r.this_year)}</td>
-        <td class="num">${esc(r.last_year)}</td>
+        <td class="num">${inFiling(r.this_year, r.this_link)}</td>
+        <td class="num">${inFiling(r.last_year, r.last_link)}</td>
         <td class="f">${r.formula.map(esc).join("<br>")}</td>
         <td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
       </tr>`).join("");
@@ -484,7 +499,8 @@
       <div class="steps">
         ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(W(prev, "signal"))}</button>` : ""}
         ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(W(next, "signal"))} →</button>` : ""}
-      </div>`;
+      </div>
+      <p class="swipe-hint">Swipe left or right to move between cards.</p>`;
     const top = `
       <div class="nav">
         <button class="ghost" type="button" data-card="0">${where().vs ? "← Back to compare" : "← All eight"}</button>
@@ -495,6 +511,8 @@
         <p class="big">${esc(c.big)}</p>
         <p class="under">${esc(c.small)}</p>`;
     $("detail").classList.toggle("fresh", !down && n === justFlipped); // play the reveal once, right after a guess
+    $("detail").classList.remove("slide-next", "slide-prev");
+    if (slide) { void $("detail").offsetWidth; $("detail").classList.add(`slide-${slide}`); slide = ""; } // restart the slide each time
     if (down) { // face down: the two numbers and the question, nothing that gives the answer away
       $("detail").innerHTML = `${top}
       <div class="hero">${numbers}
@@ -523,7 +541,7 @@
           ${rows}
         </table></div>
         <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
-        <p class="note muted">A label is a first screen, not a verdict.</p>
+        <p class="note muted">${c.rows.some(r => r.this_link) ? "Tap a number to open the filing at that number, highlighted. " : ""}A label is a first screen, not a verdict.</p>
       </div>${trend}` : ""}${steps}`;
     justFlipped = 0;
   }
@@ -633,6 +651,21 @@
     if (e.key === "ArrowLeft" && card > 1) go(ticker, card - 1);
     if (e.key === "ArrowRight" && card < 8) go(ticker, card + 1);
   });
+  // Swipe left or right on a card to go to the next or previous one. Tables that scroll sideways are left alone.
+  let sx = 0, sy = 0, swiping = false;
+  $("detail").addEventListener("touchstart", e => {
+    swiping = e.touches.length === 1 && !e.target.closest(".scroll, input");
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+  }, { passive: true });
+  $("detail").addEventListener("touchend", e => {
+    if (!swiping || !data || picking) return;
+    swiping = false;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return; // too short, or really a scroll
+    const { ticker, card } = where();
+    if (dx < 0 && card && card < 8) go(ticker, card + 1);
+    if (dx > 0 && card > 1) go(ticker, card - 1);
+  }, { passive: true });
   addEventListener("popstate", render);
   render();
 </script>
