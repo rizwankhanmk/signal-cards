@@ -2,7 +2,7 @@
 // put a label on it, and save everything to data/WDFC.json.
 // No numbers are typed in here. Everything comes from the SEC's companyfacts API.
 
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 const TICKER = "WDFC";
 const CIK = "0000105132"; // WD-40 Company's SEC id, padded to 10 digits
@@ -126,6 +126,7 @@ const out = {
   status: "Draft",
 };
 
+await mkdir("data", { recursive: true });
 await writeFile(`data/${TICKER}.json`, JSON.stringify(out, null, 2));
 
 // ---------- 5. Print what to check ----------
