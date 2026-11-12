@@ -142,7 +142,7 @@ export function buildCards(facts, cik) {
     const [a, b] = [f.this_year.usd, f.last_year.usd];
     if (b === 0) return { ...inputRow(f, ["Last year was zero, so there is no growth rate."]), growth_pct: null };
     const g = round1((a - b) / Math.abs(b) * 100);
-    return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${one(g)}%`]), growth_pct: g };
+    return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${g < 0 ? "−" : ""}${one(Math.abs(g))}%`]), growth_pct: g };
   };
   const notFound = (signal, missing, note) => ({
     signal, state: "Not found", rows: [], label: null, status: "Draft",
