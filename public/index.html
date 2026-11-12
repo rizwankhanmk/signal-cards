@@ -58,6 +58,9 @@
   .tries { margin: 22px 0 0; font-size: 15px; color: var(--muted); display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
   .chip { background: none; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 999px; padding: 6px 16px; min-height: 44px; cursor: pointer; font-size: 15px; }
   button.chip:hover { background: var(--surface); }
+  .tries .when { color: var(--muted); font-size: 13px; margin-left: .35em; }
+  #fresh { margin-top: 12px; }
+  @media (max-width: 480px) { #fresh .chip:nth-of-type(n+5) { display: none; } } /* four is plenty on a phone */
   .tries.soon { margin-top: 12px; font-size: 14px; }
   .soon .chip { border-style: dashed; cursor: default; font-size: 14px; color: var(--muted); min-height: 0; }
 
@@ -171,7 +174,7 @@
   @keyframes fromLeft { from { transform: translateX(-36px); opacity: 0; } to { transform: none; opacity: 1; } }
   #detail.slide-next { animation: fromRight .28s ease both; }
   #detail.slide-prev { animation: fromLeft .28s ease both; }
-  .swipe-hint { display: none; text-align: center; font-size: 13px; color: var(--muted); margin: 18px 0 0; }
+  .swipe-hint { display: none; text-align: center; font-size: 14px; color: var(--muted); margin: 6px 0 0; }
   @media (hover: none) and (pointer: coarse) { .swipe-hint { display: block; } }
   .steps { display: flex; justify-content: space-between; gap: 16px; padding: 44px 0 0; font-size: 15px; }
   .steps button { background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
@@ -241,6 +244,7 @@
         <button class="chip" type="button" data-try="WDFC">WD-40</button>
         <button class="chip" type="button" data-try="NKE">Nike</button>
       </p>
+      <p class="tries" id="fresh" hidden></p>
       <p class="tries soon">Coming soon
         <span class="chip">Singapore Airlines</span>
         <span class="chip">Tata</span>
@@ -295,6 +299,15 @@
     "Read the money, not the headlines.",       // Saturday
   ];
   $("motto").textContent = MOTTOS[new Date().getDay()];
+
+  // ---------- Home screen: big companies whose annual report just landed ----------
+  // Fresh numbers are the best ones to practise on. If this fails, the home screen simply does without it.
+  const shortName = n => n.replace(/[,.]/g, "").replace(/\s+(Inc|Corp|Corporation|Co|Company|Ltd|plc|Holdings|Group|& Co|\/[A-Z]+\/?)$/gi, "").replace(/\s+(Inc|Corp|Co|& Co)$/i, "").trim();
+  fetch("/api/fresh").then(r => r.ok ? r.json() : null).then(d => {
+    if (!d?.fresh?.length) return;
+    $("fresh").innerHTML = "Just filed " + d.fresh.map(c => { const [day_, mon] = day(c.filed).split(" "); return `<button class="chip" type="button" data-try="${esc(c.ticker)}" title="${esc(c.name)}: annual report filed ${esc(day(c.filed))}">${esc(shortName(c.name))}<span class="when">${esc(day_)} ${esc(mon)}</span></button>`; }).join(" ");
+    $("fresh").hidden = false;
+  }).catch(() => {});
 
   // ---------- Light and dark ----------
   // Follows the computer's setting until you press the button; then it remembers your choice.
@@ -499,13 +512,13 @@
       <div class="steps">
         ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(W(prev, "signal"))}</button>` : ""}
         ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(W(next, "signal"))} →</button>` : ""}
-      </div>
-      <p class="swipe-hint">Swipe left or right to move between cards.</p>`;
+      </div>`;
     const top = `
       <div class="nav">
         <button class="ghost" type="button" data-card="0">${where().vs ? "← Back to compare" : "← All eight"}</button>
         <span class="muted">${n} of 8</span>
-      </div>`;
+      </div>
+      ${swiped ? "" : `<p class="swipe-hint">‹ Swipe left or right for the next card ›</p>`}`;
     const numbers = `
         <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
         <p class="big">${esc(c.big)}</p>
@@ -653,6 +666,8 @@
   });
   // Swipe left or right on a card to go to the next or previous one. Tables that scroll sideways are left alone.
   let sx = 0, sy = 0, swiping = false;
+  let swiped = false; // once you have swiped, the hint has done its job and goes away for good
+  try { swiped = localStorage.getItem("sc:swiped") === "1"; } catch {}
   $("detail").addEventListener("touchstart", e => {
     swiping = e.touches.length === 1 && !e.target.closest(".scroll, input");
     sx = e.touches[0].clientX; sy = e.touches[0].clientY;
@@ -663,8 +678,11 @@
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return; // too short, or really a scroll
     const { ticker, card } = where();
-    if (dx < 0 && card && card < 8) go(ticker, card + 1);
-    if (dx > 0 && card > 1) go(ticker, card - 1);
+    if (!card) return;
+    if (!swiped) { swiped = true; try { localStorage.setItem("sc:swiped", "1"); } catch {} }
+    if (dx < 0 && card < 8) go(ticker, card + 1);
+    else if (dx > 0 && card > 1) go(ticker, card - 1);
+    else render(); // at either end: nothing to move to, but the hint can go
   }, { passive: true });
   addEventListener("popstate", render);
   render();

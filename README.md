@@ -63,7 +63,10 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   It says so if their years end on different dates, and "Not comparable" if they follow different accounting rules.
 - Checking a number: on a card, tap any number from the filing and the 10-K opens scrolled to that number,
   highlighted. It finds the first place the number appears, so check the row name beside it.
-- On a phone, swipe left or right on a card to move to the next or previous one.
+- On a phone, swipe left or right on a card to move to the next or previous one. A hint at the top of the card
+  says so until you have swiped once.
+- The home screen shows "Just filed": the big companies whose annual report landed most recently. It looks at
+  the hundred or so biggest companies on the SEC's list and is worked out at most twice a day (`fresh` in `sec.mjs`).
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
