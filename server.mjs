@@ -1,20 +1,25 @@
 // A tiny local web server. No packages needed.
-// It serves exactly two things: index.html, and data/<TICKER>.json. Nothing else, so .env is never exposed.
+// It serves exactly two things: index.html, and /api/cards?ticker=XXXX. Nothing else, so .env is never exposed.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
+import { cardsFor, Friendly } from "./sec.mjs";
 
 const PORT = process.env.PORT || 3000;
+const json = (res, status, body) => { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(body)); };
 
 createServer(async (req, res) => {
-  const path = req.url.split("?")[0];
-  let file, type;
-  if (path === "/" || path === "/index.html") { file = "index.html"; type = "text/html; charset=utf-8"; }
-  else if (/^\/data\/[A-Z0-9.-]{1,10}\.json$/.test(path)) { file = path.slice(1); type = "application/json"; }
-  if (!file) { res.writeHead(404); return res.end("Not found"); }
-  try {
-    res.writeHead(200, { "Content-Type": type });
-    res.end(await readFile(file));
-  } catch {
-    res.writeHead(404); res.end("Not found");
+  const url = new URL(req.url, "http://localhost");
+  if (url.pathname === "/" || url.pathname === "/index.html") {
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    return res.end(await readFile("index.html"));
   }
+  if (url.pathname === "/api/cards") {
+    try { return json(res, 200, await cardsFor(url.searchParams.get("ticker"), process.env.SEC_USER_AGENT)); }
+    catch (e) {
+      if (e instanceof Friendly) return json(res, e.status, { error: e.message });
+      console.error(e);
+      return json(res, 500, { error: "Something went wrong building the cards. The Terminal window shows the details." });
+    }
+  }
+  res.writeHead(404); res.end("Not found");
 }).listen(PORT, () => console.log(`Open http://localhost:${PORT}`));

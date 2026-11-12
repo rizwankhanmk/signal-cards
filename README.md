@@ -3,14 +3,20 @@
 Read a company's annual report like an investor or a COO, one signal at a time.
 Educational, not financial advice.
 
-## Run it (WD-40, all eight signals)
+## Run it (any US ticker)
 
 1. Copy `.env.example` to `.env` and put your name and contact email in it. The SEC asks for this on every request.
-2. `npm run fetch` pulls the numbers from the SEC, prints the eight cards and a checklist, and saves `data/WDFC.json`.
-3. `npm start` then open http://localhost:3000.
+2. `npm start`, open http://localhost:3000, type a ticker and press Enter.
+3. Or in the Terminal: `npm run fetch AAPL COST JPM` prints the eight cards for each company, plus a checklist of the numbers to verify in its 10-K. With no ticker it fetches WD-40 (WDFC).
 
 The eight signals: Inventory, Accounts receivable, Capital expenditure, Research and development,
 Gross profit, SG&A, Effective tax rate, Labour force.
+
+How it works:
+- `sec.mjs` finds the company in the SEC's ticker list, pulls its numbers and saves them in `data/` for a day.
+- `signals.mjs` turns those numbers into cards. No numbers are typed in anywhere.
+- Numbers show in USD millions when every figure is a whole million, otherwise in USD thousands, to match the 10-K.
+- Only companies that file a 10-K are covered. Foreign companies listed in the US file a different form.
 
 ## Label rules
 
@@ -71,5 +77,8 @@ Effective tax rate = income tax ÷ pre-tax profit × 100. The label looks at the
 
 ### When there is no label
 
+- **Doesn't apply**: the signal does not fit the company. Banks, insurers and other financial companies
+  (SEC industry codes 6000 to 6799) get this for Inventory, Accounts receivable and Gross profit.
+  The Effective tax rate card says it when pre-tax profit was zero or a loss.
 - **Not found**: the SEC data has no figure for one of the two years. Missing does not mean zero.
 - **No label**: last year's figure was zero, so there is no growth rate.

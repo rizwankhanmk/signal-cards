@@ -6,6 +6,10 @@
 <title>Signal Cards</title>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1d1d1f; }
+  form { display: flex; gap: .5rem; margin-bottom: 1.5rem; }
+  input, button { font: inherit; padding: .5rem .75rem; border: 1px solid #999; border-radius: 6px; }
+  input { width: 9rem; text-transform: uppercase; }
+  button { background: #1d1d1f; color: #fff; border-color: #1d1d1f; cursor: pointer; }
   h2 { margin: 2.5rem 0 0; padding-top: 1.5rem; border-top: 1px solid #ddd; }
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
@@ -16,25 +20,44 @@
 </style>
 </head>
 <body>
-<h1 id="title">Loading…</h1>
+<form id="form">
+  <label for="ticker" class="muted" style="align-self:center">US ticker</label>
+  <input id="ticker" name="ticker" placeholder="WDFC" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10" required>
+  <button>Show cards</button>
+</form>
+<h1 id="title"></h1>
 <p class="muted" id="sub"></p>
 <div id="cards"></div>
 <p class="muted">Educational, not financial advice.</p>
 <script>
-  const q = new URLSearchParams(location.search);
-  const ticker = (q.get("ticker") || "WDFC").toUpperCase();
-  // Text from the data file is shown as text, never as page code.
+  const $ = id => document.getElementById(id);
+  // Text from the data is shown as text, never as page code.
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-  fetch(`data/${ticker}.json`).then(r => r.json()).then(d => {
+  async function show(ticker) {
+    $("ticker").value = ticker;
+    $("title").textContent = `Reading ${ticker}…`;
+    $("sub").textContent = ""; $("cards").innerHTML = "";
+    let d;
+    try {
+      const r = await fetch(`/api/cards?ticker=${encodeURIComponent(ticker)}`);
+      d = await r.json();
+      if (!r.ok) throw new Error(d.error);
+    } catch (e) {
+      $("title").textContent = "No cards";
+      $("sub").textContent = e.message || "Something went wrong. Is the server still running in the Terminal?";
+      return;
+    }
     const T = d.fiscal.this_year, L = d.fiscal.last_year;
-    document.getElementById("title").textContent = `${d.company} · ${T.fy} vs ${L.fy}`;
-    document.getElementById("sub").innerHTML =
-      `${esc(d.unit)}, as shown in the 10-K. Fiscal years end ${esc(T.end.slice(5))}. ` +
+    document.title = `${d.ticker} · Signal Cards`;
+    $("title").textContent = `${d.company} (${d.ticker}) · ${T.fy} vs ${L.fy}`;
+    $("sub").innerHTML =
+      `${esc(d.unit)}, as shown in the 10-K. Fiscal year ${esc(T.fy)} ended ${esc(T.end)}. ` +
+      (d.industry ? `SEC industry: ${esc(d.industry)}. ` : "") +
       `Numbers pulled from the SEC on ${esc(d.fetched_at.slice(0, 10))}. ` +
       `<a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(d.filing.filed)}</a>.`;
 
-    document.getElementById("cards").innerHTML = d.cards.map((c, n) => {
+    $("cards").innerHTML = d.cards.map((c, n) => {
       const rows = c.rows.map(r => `
         <tr>
           <td>${esc(r.item)}</td>
@@ -54,7 +77,18 @@
       const draft = c.rows.length ? `<p class="muted">${esc(c.status)}. Tick when you have checked the numbers in the filing.</p>` : "";
       return `<section><h2>${n + 1}. ${esc(c.signal)}</h2>${table}${label}${draft}</section>`;
     }).join("");
-  }).catch(e => { document.getElementById("title").textContent = `No data for ${ticker}. Run: npm run fetch`; });
+  }
+
+  $("form").addEventListener("submit", e => {
+    e.preventDefault();
+    const t = $("ticker").value.trim().toUpperCase();
+    if (!t) return;
+    history.pushState(null, "", `?ticker=${encodeURIComponent(t)}`);
+    show(t);
+  });
+  const fromUrl = () => show((new URLSearchParams(location.search).get("ticker") || "WDFC").toUpperCase());
+  addEventListener("popstate", fromUrl);
+  fromUrl();
 </script>
 </body>
 </html>

@@ -1,52 +1,41 @@
-// Step 2: pull WD-40's numbers from the SEC, build all eight signal cards,
-// and save everything to data/WDFC.json.
-// No numbers are typed in here. Everything comes from the SEC's companyfacts API.
-// The card logic lives in signals.mjs.
+// Pull one or more companies from the SEC, print their eight signal cards, and save them in data/.
+//   npm run fetch              -> WD-40 (WDFC)
+//   npm run fetch AAPL COST    -> Apple and Costco
+// No numbers are typed in here. The card logic lives in signals.mjs, the SEC calls in sec.mjs.
 
-import { mkdir, writeFile } from "node:fs/promises";
-import { buildCards } from "./signals.mjs";
+import { cardsFor } from "./sec.mjs";
 
-const TICKER = "WDFC";
-const CIK = "0000105132"; // WD-40 Company's SEC id, padded to 10 digits
-
-const UA = process.env.SEC_USER_AGENT;
-if (!UA) {
-  console.error("Missing SEC_USER_AGENT. Copy .env.example to .env and fill it in.");
-  process.exit(1);
-}
-
-// ---------- 1. Fetch ----------
-const url = `https://data.sec.gov/api/xbrl/companyfacts/CIK${CIK}.json`;
-const res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Encoding": "gzip, deflate" } });
-if (!res.ok) throw new Error(`SEC answered ${res.status} for ${url}`);
-const facts = await res.json();
-
-// ---------- 2. Build and save ----------
-const out = { ticker: TICKER, cik: CIK, fetched_at: new Date().toISOString(), source_api: url, ...buildCards(facts, CIK) };
-await mkdir("data", { recursive: true });
-await writeFile(`data/${TICKER}.json`, JSON.stringify(out, null, 2));
-
-// ---------- 3. Print the cards ----------
-const { this_year: T, last_year: L } = out.fiscal;
-console.log(`${out.company} — ${T.fy} (ends ${T.end}) vs ${L.fy} (ends ${L.end}) — ${out.unit}\n`);
-out.cards.forEach((c, n) => {
-  console.log(`${n + 1}. ${c.signal.toUpperCase()}`);
-  for (const r of c.rows) {
-    console.log(`   ${r.item}: ${r.this_year} vs ${r.last_year}`);
-    for (const line of r.formula) console.log(`      ${line}`);
-  }
-  if (c.label) console.log(`   Label: ${c.label.name}. ${c.label.reason}`);
-  else console.log(`   ${c.state}. ${c.note}`);
-  console.log("");
-});
-
-// ---------- 4. Print what to check ----------
-console.log(`CHECK THESE AGAINST THE 10-K filed ${out.filing.filed}: ${out.filing.url}`);
-console.log(`Tip: press Cmd+F and search for the number itself, then check the row name beside it.\n`);
+const tickers = process.argv.slice(2).length ? process.argv.slice(2) : ["WDFC"];
 const pad = (s, n) => String(s).padEnd(n);
-console.log(`   ${pad("Item", 22)}${pad(T.fy, 12)}${pad(L.fy, 12)}Where`);
-for (const i of out.inputs) {
-  console.log(`   ${pad(i.item, 22)}${pad(Math.round(i.this_year.usd / 1000).toLocaleString("en-US"), 12)}${pad(Math.round(i.last_year.usd / 1000).toLocaleString("en-US"), 12)}${i.statement}`);
+let failed = 0;
+
+for (const t of tickers) {
+  let out;
+  try { out = await cardsFor(t, process.env.SEC_USER_AGENT, { fresh: true }); }
+  catch (e) { failed++; console.log(`\n${"=".repeat(70)}\n${t.toUpperCase()}: ${e.message}\n`); continue; }
+
+  const { this_year: T, last_year: L } = out.fiscal;
+  console.log(`\n${"=".repeat(70)}`);
+  console.log(`${out.ticker} — ${out.company} — ${T.fy} (ends ${T.end}) vs ${L.fy} (ends ${L.end}) — ${out.unit}`);
+  if (out.industry) console.log(`SEC industry: ${out.industry}`);
+  console.log("");
+  out.cards.forEach((c, n) => {
+    console.log(`${n + 1}. ${c.signal.toUpperCase()}`);
+    for (const r of c.rows) {
+      console.log(`   ${r.item}: ${r.this_year} vs ${r.last_year}`);
+      for (const line of r.formula) console.log(`      ${line}`);
+    }
+    if (c.label) console.log(`   Label: ${c.label.name}. ${c.label.reason}`);
+    else console.log(`   ${c.state}. ${c.note}`);
+    console.log("");
+  });
+
+  console.log(`CHECK THESE AGAINST THE 10-K filed ${out.filing.filed}: ${out.filing.url}`);
+  console.log(`Tip: press Cmd+F and search for the number itself, then check the row name beside it.\n`);
+  console.log(`   ${pad("Item", 22)}${pad(T.fy, 12)}${pad(L.fy, 12)}${pad("Where", 26)}SEC tag`);
+  for (const i of out.inputs) console.log(`   ${pad(i.item, 22)}${pad(i.shown[0], 12)}${pad(i.shown[1], 12)}${pad(i.statement, 26)}${i.tag}`);
+  console.log(`\nNot found in the SEC data: ${out.missing.join(", ")}`);
+  for (const [item, tags] of Object.entries(out.lookalikes)) console.log(`   Look-alike tags for ${item}: ${tags.join("; ")}`);
+  console.log(`Saved to data/${out.ticker}.json`);
 }
-console.log(`\nNot found in the SEC data: ${out.missing.join(", ")}`);
-console.log(`Saved to data/${TICKER}.json`);
+process.exit(failed ? 1 : 0);

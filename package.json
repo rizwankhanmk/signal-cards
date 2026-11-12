@@ -5,6 +5,6 @@
   "type": "module",
   "scripts": {
     "fetch": "node --env-file=.env fetch.mjs",
-    "start": "node server.mjs"
+    "start": "node --env-file=.env server.mjs"
   }
 }
