@@ -87,16 +87,30 @@ function describe(name, picked, statement) {
 const S = describe("Sales", sales, "Income statement");
 const I = describe("Inventory", inventory, "Balance sheet");
 
-// ---------- 4. Label, straight from the rule table in the brief ----------
+// ---------- 4. Label ----------
+// The brief's table, plus two rows it did not cover (both fall, but not at the same rate).
+// The idea throughout: is the item growing faster or slower than sales?
+//   sales up,   item down or flat                      -> Most favourable
+//   sales up,   item up, slower than sales             -> Good
+//   sales up,   item up, as fast as sales or faster    -> Warning
+//   sales down, item up or flat                        -> Risk rising
+//   sales down, item down, within 5 pp of sales        -> Neutral / watch
+//   sales down, item down more than 5 pp faster        -> Good        (stock cut faster than sales shrink)
+//   sales down, item down more than 5 pp slower        -> Warning     (stock not shrinking as fast as sales)
+// Flat (exactly 0.0%) counts as "up" for sales and "down" for the item, so the first screen stays gentle.
 const ABOUT_SAME_PP = 5; // "about the same rate" means within this many percentage points
 function label(s, i) {
-  const gap = round1(i - s);
-  if (s > 0 && i < 0) return { name: "Most favourable", reason: `Sales rose ${s}%, inventory fell ${Math.abs(i)}%.` };
-  if (s > 0 && i > 0 && i < s) return { name: "Good", reason: `Both rose, but inventory (${i}%) grew slower than sales (${s}%).` };
-  if (s > 0 && i > 0 && i >= s) return { name: "Warning", reason: `Inventory grew ${i}%, sales grew ${s}%. Stock is piling up ${gap} percentage points faster than it sells.` };
-  if (s < 0 && i > 0) return { name: "Risk rising", reason: `Sales fell ${Math.abs(s)}% while inventory rose ${i}%.` };
-  if (s < 0 && i < 0 && Math.abs(gap) <= ABOUT_SAME_PP) return { name: "Neutral / watch", reason: `Both fell at about the same rate: sales ${s}%, inventory ${i}%.` };
-  return { name: "No label yet", reason: `Sales ${s}%, inventory ${i}%. This pattern is not in the rule table.` };
+  const gap = round1(i - s); // positive = item grew faster than sales
+  const pct = x => `${Math.abs(x)}%`;
+  if (s >= 0) {
+    if (i <= 0) return { name: "Most favourable", reason: `Sales rose ${pct(s)}, inventory ${i < 0 ? "fell " + pct(i) : "stayed flat"}.` };
+    if (i < s) return { name: "Good", reason: `Both rose, but inventory (${pct(i)}) grew slower than sales (${pct(s)}).` };
+    return { name: "Warning", reason: `Inventory grew ${pct(i)}, sales grew ${pct(s)}. Stock is piling up ${gap > 0 ? gap + " percentage points faster than" : "as fast as"} it sells.` };
+  }
+  if (i >= 0) return { name: "Risk rising", reason: `Sales fell ${pct(s)} while inventory ${i > 0 ? "rose " + pct(i) : "did not fall"}.` };
+  if (Math.abs(gap) <= ABOUT_SAME_PP) return { name: "Neutral / watch", reason: `Both fell at about the same rate: sales ${pct(s)}, inventory ${pct(i)}.` };
+  if (gap < 0) return { name: "Good", reason: `Sales fell ${pct(s)}, but inventory was cut faster, ${pct(i)}. Stock is shrinking ahead of sales.` };
+  return { name: "Warning", reason: `Sales fell ${pct(s)} but inventory only fell ${pct(i)}. Stock is not shrinking as fast as sales.` };
 }
 
 const out = {
