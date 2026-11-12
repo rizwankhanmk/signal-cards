@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Signal Cards</title>
-<meta name="description" content="Type a company. Read its annual report in eight numbers, and guess the flag before each card flips. Educational, not financial advice.">
+<meta name="description" content="Type a company. Read its annual report one card at a time: eight signals, plus cash and debt. Guess the flag before each card flips. Educational, not financial advice.">
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="manifest" href="/manifest.webmanifest">
@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#1d1d1f" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-title" content="Signal Cards">
 <meta property="og:title" content="Signal Cards">
-<meta property="og:description" content="Read any US company's annual report in eight numbers. Guess the flag before each card flips.">
+<meta property="og:description" content="Read any US company's annual report one card at a time. Guess the flag before each card flips.">
 <meta property="og:type" content="website">
 <meta property="og:image" content="https://signal-cards.vercel.app/og.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -61,6 +61,10 @@
   .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 14px; text-wrap: balance; }
   .ask.small .motto, .ask.small .lede, .ask.small .tries { display: none; }
   .tries.after { margin: 26px 0 0; }
+  /* A heading between groups of tiles, and the plain reading under a ratio table */
+  .deckhead { grid-column: 1 / -1; font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 22px 0 2px; }
+  .cmp .deckhead { margin: 44px 0 0; padding-top: 22px; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); color: var(--muted); }
+  .reading { font-size: 17px; font-weight: 500; margin: 14px 0 0; }
   .lede { font-size: 19px; color: var(--muted); margin: 0 0 34px; }
   form { display: flex; gap: 8px; justify-content: center; }
   .box { position: relative; width: min(21rem, 100%); }
@@ -278,7 +282,7 @@
     <a class="brand" href="./" id="home" aria-label="Signal Cards, home"><span class="w1">Signal</span> <span class="w2">Cards</span></a>
     <span class="barnav">
       <button class="pill" type="button" id="gohome" hidden>Home</button>
-      <button class="pill" type="button" id="goall" data-card="0" hidden>All eight</button>
+      <button class="pill" type="button" id="goall" data-card="0" hidden>All cards</button>
       <button class="ghost" id="theme" type="button" aria-label="Switch between light and dark"></button>
     </span>
   </div>
@@ -295,7 +299,7 @@
   <main>
     <section class="ask" id="ask">
       <p class="motto" id="motto">Money talks. Learn to listen.</p>
-      <p class="lede">Type a company. Read its annual report in eight numbers.</p>
+      <p class="lede">Type a company. Read its annual report, one card at a time.</p>
       <form id="form">
         <div class="box">
           <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
@@ -344,7 +348,7 @@
     </button>
     <button class="tab" type="button" id="taball" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
-      <span id="taballlabel">All eight</span>
+      <span id="taballlabel">All cards</span>
     </button>
     <button class="tab" type="button" id="tabnext" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
@@ -471,7 +475,7 @@
     const q = new URLSearchParams(location.search);
     const n = Number(q.get("card"));
     const ticker = (q.get("ticker") || "").trim().toUpperCase(), vs = (q.get("vs") || "").trim().toUpperCase();
-    return { ticker, card: Number.isInteger(n) && n >= 1 && n <= 8 ? n : 0, vs: vs && vs !== ticker ? vs : "" };
+    return { ticker, card: Number.isInteger(n) && n >= 1 && n <= 40 ? n : 0, vs: vs && vs !== ticker ? vs : "" };
   };
   // vs left out: keep the comparison while you stay on the same company, drop it when you pick a new one.
   const go = (ticker, card = 0, vs) => {
@@ -516,9 +520,9 @@
     $("ask").classList.toggle("small", !!ticker);
     $("gohome").hidden = !ticker;                       // anywhere but the home screen
     $("goall").hidden = !card;                          // on a single card
-    $("goall").textContent = $("taballlabel").textContent = vs ? "Compare" : "All eight";
+    $("goall").textContent = $("taballlabel").textContent = vs ? "Compare" : "All cards";
     $("tabbar").hidden = !ticker; $("taball").hidden = !card;   // the same two buttons, at the bottom on a phone
-    $("tabnext").hidden = !card || card >= 8;                   // and Next, so the game keeps moving
+    $("tabnext").hidden = !card;                                // and Next, so the game keeps moving (hidden on the last card)
     document.body.classList.toggle("has-tabbar", !!ticker);
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
@@ -553,7 +557,8 @@
     $("company").textContent = d.company;
     $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
     $("headnote").hidden = !d.note; $("headnote").textContent = d.note || "";
-    $("grid").innerHTML = d.cards.map((c, i) => tile(d, i + 1)).join("");
+    // The tiles, in their groups: the eight signals, then cash and debt.
+    $("grid").innerHTML = d.cards.map((c, i) => `${i && c.deck !== d.cards[i - 1].deck ? `<h3 class="deckhead">${esc(c.deck)}</h3>` : ""}${tile(d, i + 1)}`).join("");
     tileToFlip = 0;
     drawScore(d);
   }
@@ -562,7 +567,7 @@
   function drawCompare(a, b) {
     document.title = `${a.ticker} vs ${b.ticker} · Signal Cards`;
     $("company").textContent = `${a.company} vs ${b.company}`;
-    $("meta").textContent = "Same eight signals, side by side. Growth rates compare fairly, whatever the size.";
+    $("meta").textContent = "The same cards, side by side. Growth rates and ratios compare fairly, whatever the size.";
     $("headnote").hidden = true;
     $("score").hidden = true;
     const head = d => `<div><b>${esc(d.company)}</b><span>${esc(d.ticker)} · ${esc(d.fiscal.this_year.fy)} vs ${esc(d.fiscal.last_year.fy)} · year ended ${esc(day(d.fiscal.this_year.end))}</span></div>`;
@@ -571,7 +576,7 @@
     if (a.fiscal.this_year.end !== b.fiscal.this_year.end) notes.push(`<p class="banner">Their years end on different dates: ${esc(day(a.fiscal.this_year.end))} and ${esc(day(b.fiscal.this_year.end))}. The two sides cover different twelve months.</p>`);
     $("compare").innerHTML = `${notes.join("")}
       <div class="cmp-head">${head(a)}${head(b)}</div>
-      ${a.cards.map((c, i) => `<h3>${esc(W(c, "signal"))}</h3><div class="cmp-two">${tile(a, i + 1)}${tile(b, i + 1)}</div>`).join("")}`;
+      ${a.cards.map((c, i) => `${i && c.deck !== a.cards[i - 1].deck ? `<h3 class="deckhead">${esc(c.deck)}</h3>` : ""}<h3>${esc(W(c, "signal"))}</h3><div class="cmp-two">${tile(a, i + 1)}${b.cards[i] ? tile(b, i + 1) : ""}</div>`).join("")}`;
     tileToFlip = 0;
   }
 
@@ -597,7 +602,20 @@
   const inFiling = (shown, link) => link ? `<a class="chk" href="${esc(link)}" target="_blank" rel="noopener" title="Open the filing at this number">${esc(shown)}</a>` : esc(shown);
 
   function drawCard(d, n) {
+    if (n > d.cards.length) return go(d.ticker, 0); // a link to a card this company does not have
     const c = d.cards[n - 1], T = d.fiscal.this_year, L = d.fiscal.last_year;
+    $("tabnext").hidden = n >= d.cards.length;
+    // What an analyst would quote: one or two ratios beside the growth rate.
+    const ratios = c.ratios?.length ? `
+      <div class="proof">
+        <h2>What an analyst would quote</h2>
+        <div class="scroll"><table>
+          <tr><th>Ratio</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th></tr>
+          ${c.ratios.map(r => `<tr><td>${esc(W(r, "name"))}</td><td class="num">${esc(r.this_year)}</td><td class="num">${esc(r.last_year)}</td><td class="f">${r.formula.map(esc).join("<br>")}</td></tr>`).join("")}
+        </table></div>
+        ${c.ratios.map(r => `<p class="reading">${esc(r.reading)}</p>`).join("")}
+        <p class="note muted">These use the year-end figures as printed. Analysts often average the start and end of the year, which gives slightly different numbers.</p>
+      </div>` : "";
     const prev = d.cards[n - 2], next = d.cards[n];
     document.title = `${c.signal} · ${d.ticker} · Signal Cards`;
     const rows = c.rows.map(r => `
@@ -626,12 +644,12 @@
         ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(W(next, "signal"))} →</button>` : ""}
       </div>`;
     const top = `
-      <div class="nav"><span class="muted">${n} of 8</span></div>
+      <div class="nav"><span class="muted">${esc(c.deck ?? "")} · ${n} of ${d.cards.length}</span></div>
       ${swiped ? "" : `<p class="swipe-hint">‹ Swipe left or right for the next card ›</p>`}`;
     const numbers = `
         <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
         <p class="big">${esc(c.big)}</p>
-        <p class="under">${esc(c.small)}</p>`;
+        <p class="under">${c.measure ? `${esc(c.measure)} · ` : ""}${esc(c.small)}</p>`;
     $("detail").classList.toggle("fresh", !down && n === justFlipped); // play the reveal once, right after a guess
     $("detail").classList.remove("slide-next", "slide-prev");
     if (slide) { void $("detail").offsetWidth; $("detail").classList.add(`slide-${slide}`); slide = ""; } // restart the slide each time
@@ -665,7 +683,7 @@
         </table></div>
         <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
         <p class="note muted">${c.rows.some(r => r.this_link) ? `${TAP} a number to open the filing at that number, highlighted. ` : ""}A label is a first screen, not a verdict.</p>
-      </div>${trend}` : ""}${steps}`;
+      </div>${ratios}${trend}` : ""}${steps}`;
     justFlipped = 0;
   }
 
@@ -745,7 +763,7 @@
   };
   $("tabhome").addEventListener("click", e => press(e.currentTarget, () => go("")));
   $("taball").addEventListener("click", e => press(e.currentTarget, () => { if (data && where().card) go(data.ticker, 0); }));
-  $("tabnext").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card && card < 8) go(data.ticker, card + 1); }));
+  $("tabnext").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card && card < data.cards.length) go(data.ticker, card + 1); }));
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);
@@ -792,7 +810,7 @@
     if (!card || !data || e.target.matches("input")) return;
     if (e.key === "Escape") go(ticker);
     if (e.key === "ArrowLeft" && card > 1) go(ticker, card - 1);
-    if (e.key === "ArrowRight" && card < 8) go(ticker, card + 1);
+    if (e.key === "ArrowRight" && card < data.cards.length) go(ticker, card + 1);
   });
   // Swipe left or right on a card to go to the next or previous one. Tables that scroll sideways are left alone.
   let sx = 0, sy = 0, swiping = false;
@@ -810,7 +828,7 @@
     const { ticker, card } = where();
     if (!card) return;
     if (!swiped) { swiped = true; try { localStorage.setItem("sc:swiped", "1"); } catch {} }
-    if (dx < 0 && card < 8) go(ticker, card + 1);
+    if (dx < 0 && card < data.cards.length) go(ticker, card + 1);
     else if (dx > 0 && card > 1) go(ticker, card - 1);
     else render(); // at either end: nothing to move to, but the hint can go
   }, { passive: true });

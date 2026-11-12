@@ -20,17 +20,22 @@ for (const t of tickers) {
   if (out.industry) console.log(`SEC industry: ${out.industry}`);
   console.log("");
   out.cards.forEach((c, n) => {
+    if (!n || c.deck !== out.cards[n - 1].deck) console.log(`--- ${c.deck} ---\n`);
     console.log(`${n + 1}. ${c.signal.toUpperCase()}`);
     for (const r of c.rows) {
       console.log(`   ${r.item}: ${r.this_year} vs ${r.last_year}`);
       for (const line of r.formula) console.log(`      ${line}`);
     }
     if (c.label) console.log(`   Label: ${c.label.name}. ${c.label.reason}`);
+    else console.log(`   ${c.state}. ${c.note}`);
+    for (const r of c.ratios ?? []) {
+      console.log(`   Analyst's ratio, ${r.name}: ${r.this_year} vs ${r.last_year}`);
+      for (const line of r.formula) console.log(`      ${line}`);
+    }
     if (c.trend) {
       console.log(`   Trend: ${c.trend.columns.join(" | ")}`);
       for (const r of c.trend.rows) console.log(`      ${r.join(" | ")}`);
     }
-    else console.log(`   ${c.state}. ${c.note}`);
     console.log("");
   });
 
