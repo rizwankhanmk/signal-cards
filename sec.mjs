@@ -78,29 +78,50 @@ async function companies(UA) {
     saved = { version: VERSION, fetched_at: new Date().toISOString(), list };
     await save(file, saved);
   }
+  // Worked out once per run, not saved: each name with punctuation removed, for matching.
+  for (const c of saved.list) { c.sq = squash(c.name); c.sp = " " + spaced(c.name); }
   memo = saved;
   return saved.list;
 }
 
-// Find companies by ticker or by name. Best matches first: the exact ticker, tickers that start
-// with what you typed, names that start with it, then names that contain it as the start of a word.
+// People search by the name they know, which is often a brand, not the company's legal name.
+// Each entry: what people type, and the ticker it belongs to. Add more here as they turn up.
+const ALSO_KNOWN_AS = [
+  ["Google", "GOOGL"], ["YouTube", "GOOGL"], ["Android", "GOOGL"], ["Gmail", "GOOGL"], ["Waymo", "GOOGL"],
+  ["Facebook", "META"], ["Instagram", "META"], ["WhatsApp", "META"],
+  ["AWS", "AMZN"], ["Whole Foods", "AMZN"],
+  ["Windows", "MSFT"], ["Xbox", "MSFT"], ["LinkedIn", "MSFT"], ["GitHub", "MSFT"],
+  ["iPhone", "AAPL"], ["Coke", "KO"], ["Amex", "AXP"], ["BofA", "BAC"], ["J&J", "JNJ"],
+  ["KFC", "YUM"], ["Taco Bell", "YUM"], ["Pizza Hut", "YUM"], ["Snapchat", "SNAP"], ["Marvel", "DIS"], ["Pixar", "DIS"], ["ESPN", "DIS"],
+  ["Gillette", "PG"], ["Tide", "PG"], ["Frito-Lay", "PEP"], ["Gatorade", "PEP"], ["Oreo", "MDLZ"], ["Cadbury", "MDLZ"],
+  ["Jordan", "NKE"], ["Converse", "NKE"], ["Sam's Club", "WMT"], ["Chase", "JPM"], ["Venmo", "PYPL"],
+];
+// "Coca-Cola" and "coca cola" and "cocacola" should all match, so compare with punctuation and spaces removed.
+const squash = s => String(s).toUpperCase().replace(/[^A-Z0-9]/g, "");
+const spaced = s => String(s).toUpperCase().replace(/[^A-Z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+
+// Find companies by ticker, by name, or by a well-known brand. Best matches first: the exact ticker,
+// a brand, names that start with what you typed, tickers that start with it, then names that
+// contain it as the start of a word.
 export async function search(rawQuery, UA, limit = 8) {
-  const q = String(rawQuery ?? "").trim().toUpperCase().slice(0, 40);
-  if (!q) return [];
-  const qt = q.replace(/\./g, "-");
+  const q = String(rawQuery ?? "").trim().slice(0, 40);
+  const sq = squash(q), sp = spaced(q), qt = q.toUpperCase().replace(/\./g, "-");
+  if (!sq) return [];
+  const brands = new Map(); // ticker -> the brand that matched
+  if (sq.length >= 3) for (const [brand, ticker] of ALSO_KNOWN_AS) if (squash(brand).startsWith(sq) && !brands.has(ticker)) brands.set(ticker, brand);
   const rank = c => {
-    const name = c.name.toUpperCase();
     if (c.ticker === qt) return 0;
-    if (name.startsWith(q)) return q.length < 3 && !c.ticker.startsWith(qt) ? 3 : 1;
+    if (brands.has(c.ticker)) return 0.5;
+    if (c.sq.startsWith(sq)) return sq.length < 3 && !c.ticker.startsWith(qt) ? 3 : 1;
     if (c.ticker.startsWith(qt)) return 2;
-    if (q.length >= 3 && name.includes(" " + q)) return 3;
+    if (sq.length >= 3 && c.sp.includes(" " + sp)) return 3;
     return 9;
   };
   const seen = new Set(); // one row per company, even if it has several share classes
   return (await companies(UA)).map((c, order) => ({ c, r: rank(c), order })).filter(x => x.r < 9)
     .sort((a, b) => a.r - b.r || a.order - b.order)
     .filter(x => (x.r === 0 || !seen.has(x.c.cik)) && seen.add(x.c.cik))
-    .slice(0, limit).map(x => ({ ticker: x.c.ticker, name: x.c.name }));
+    .slice(0, limit).map(x => ({ ticker: x.c.ticker, name: x.c.name, ...(brands.has(x.c.ticker) && { aka: brands.get(x.c.ticker) }) }));
 }
 
 // The eight cards for one ticker. Uses the saved copy if it is under a day old, unless fresh is true.

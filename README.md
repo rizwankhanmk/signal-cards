@@ -43,7 +43,9 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - Light and dark: follows your computer's setting; the button in the top corner overrides it.
 - Type a ticker, see the company and fiscal year, then eight tiles. Tap a tile to open that card on its own screen.
   Arrow keys move between cards, Esc goes back to the eight.
-- A small mark sits beside each label: hollow for good, half for watch, filled for warning. Shape, not colour.
+- A small mark sits beside each label: hollow for good, half for watch, filled for warning. Each also has a
+  quiet colour (green, amber, red), and a revealed tile carries a faint tint of it. The shape still tells them apart without colour.
+- Search also knows well-known brands: "Google" finds Alphabet, "Facebook" finds Meta. The list is `ALSO_KNOWN_AS` in `sec.mjs`.
 - Each card has one plain line on what the signal is, and a table of the last few years. Each trend row
   compares a year with the year before by the same rules. The label itself still comes from the latest two years.
 - Company names from the SEC are tidied ("COSTCO WHOLESALE CORP /NEW" becomes "Costco Wholesale Corp").
