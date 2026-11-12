@@ -208,7 +208,7 @@ export function buildCards(facts, cik, info = {}) {
     if (!F[key]) return missingCard(signal, [CONCEPTS[key].name], financialNote);
     const row = growthRow(F[key]);
     if (s === null || row.growth_pct === null) return card(signal, [salesRow, row], null, { state: "No label", note: "A growth rate could not be worked out because last year's figure was zero." });
-    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `sales ${signedPct(s)}` });
+    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}` });
   }
 
   function grossProfit() {
