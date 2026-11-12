@@ -15,7 +15,9 @@ const CONCEPTS = {
   gross:       { name: "Gross profit", plain: "Profit after direct costs",        statement: "Income statement",    instant: false, hint: /^GrossProfit/,
                  tags: ["GrossProfit"] },
   inventory:   { name: "Inventory", plain: "Unsold stock",           statement: "Balance sheet",       instant: true,  hint: /^Inventor/,
-                 tags: ["InventoryNet"] },
+                 // Nike files its whole inventory as finished goods, so that tag is the fallback.
+                 // totalFirst: if the company reports the total at all, never fall back to a part of it.
+                 totalFirst: true, tags: ["InventoryNet", "InventoryFinishedGoodsNetOfReserves"] },
   receivables: { name: "Accounts receivable", plain: "Unpaid customer bills", statement: "Balance sheet",       instant: true,  hint: /Receivable.*Current$/,
                  tags: ["AccountsReceivableNetCurrent", "AccountsAndOtherReceivablesNetCurrent", "ReceivablesNetCurrent"] },
   sga:         { name: "SG&A", plain: "Overheads",                statement: "Income statement",    instant: false, hint: /Selling|GeneralAndAdministrative/,
@@ -230,6 +232,7 @@ export function buildCards(facts, cik, info = {}) {
       const rows = annualRows(gaap, tag, c.instant);
       const a = rows.find(r => r.end === thisEnd), b = rows.find(r => r.end === lastEnd);
       if (a && b) return { key, item: c.name, tag, statement: c.statement, this_year: side(a), last_year: side(b) };
+      if (c.totalFirst && (a || b)) return null; // the total exists for one year only: say Not found, don't use a part
     }
     return null;
   }
