@@ -34,6 +34,12 @@ How it works:
   and it flips. "Reveal all" flips the rest without scoring; "Play again" turns them back over.
 - Draft: every card is Draft until you tick "I checked these numbers in the filing myself". Then it says Checked.
 - Guesses and ticks are remembered in your browser only, per company and fiscal year.
+- Accounting / Plain English: one switch swaps the wording everywhere ("Accounts receivable" becomes "Unpaid customer bills").
+  Both wordings are written in `signals.mjs`.
+- Investor / COO: same cards, different last line. The investor's line says what to check in the filing;
+  the COO's says what to ask inside the business. Neither is buy or sell advice. The lines are in `NEXT` in `signals.mjs`.
+- Compare: under the tiles, "Compare with" puts a second company beside the first, signal by signal.
+  It says so if their years end on different dates, and "Not comparable" if they follow different accounting rules.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 

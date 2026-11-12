@@ -8,25 +8,25 @@
 // instant: false = a figure for the whole year.
 // hint: used only to suggest look-alike tags when nothing on the list is found.
 const CONCEPTS = {
-  sales:       { name: "Sales",               statement: "Income statement",    instant: false, hint: /Revenue/,
+  sales:       { name: "Sales", plain: "Sales",               statement: "Income statement",    instant: false, hint: /Revenue/,
                  tags: ["RevenueFromContractWithCustomerExcludingAssessedTax", "RevenueFromContractWithCustomerIncludingAssessedTax", "Revenues", "SalesRevenueNet", "SalesRevenueGoodsNet"] },
-  cost:        { name: "Cost of sales",       statement: "Income statement",    instant: false, hint: /^Costs?Of/,
+  cost:        { name: "Cost of sales", plain: "Cost of what was sold",       statement: "Income statement",    instant: false, hint: /^Costs?Of/,
                  tags: ["CostOfGoodsAndServicesSold", "CostOfRevenue", "CostOfGoodsSold"] },
-  gross:       { name: "Gross profit",        statement: "Income statement",    instant: false, hint: /^GrossProfit/,
+  gross:       { name: "Gross profit", plain: "Profit after direct costs",        statement: "Income statement",    instant: false, hint: /^GrossProfit/,
                  tags: ["GrossProfit"] },
-  inventory:   { name: "Inventory",           statement: "Balance sheet",       instant: true,  hint: /^Inventor/,
+  inventory:   { name: "Inventory", plain: "Unsold stock",           statement: "Balance sheet",       instant: true,  hint: /^Inventor/,
                  tags: ["InventoryNet"] },
-  receivables: { name: "Accounts receivable", statement: "Balance sheet",       instant: true,  hint: /Receivable.*Current$/,
+  receivables: { name: "Accounts receivable", plain: "Unpaid customer bills", statement: "Balance sheet",       instant: true,  hint: /Receivable.*Current$/,
                  tags: ["AccountsReceivableNetCurrent", "AccountsAndOtherReceivablesNetCurrent", "ReceivablesNetCurrent"] },
-  sga:         { name: "SG&A",                statement: "Income statement",    instant: false, hint: /Selling|GeneralAndAdministrative/,
+  sga:         { name: "SG&A", plain: "Overheads",                statement: "Income statement",    instant: false, hint: /Selling|GeneralAndAdministrative/,
                  tags: ["SellingGeneralAndAdministrativeExpense"] },
-  rnd:         { name: "R&D",                 statement: "Income statement or notes", instant: false, hint: /ResearchAndDevelopment/,
+  rnd:         { name: "R&D", plain: "Research spending",                 statement: "Income statement or notes", instant: false, hint: /ResearchAndDevelopment/,
                  tags: ["ResearchAndDevelopmentExpense"] },
-  capex:       { name: "Capital expenditure", statement: "Cash flow statement", instant: false, hint: /^PaymentsToAcquire(Property|Productive)/,
+  capex:       { name: "Capital expenditure", plain: "Spending on buildings and equipment", statement: "Cash flow statement", instant: false, hint: /^PaymentsToAcquire(Property|Productive)/,
                  tags: ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"] },
-  tax:         { name: "Income tax",          statement: "Income statement",    instant: false, hint: /^IncomeTaxExpense/,
+  tax:         { name: "Income tax", plain: "Tax bill",          statement: "Income statement",    instant: false, hint: /^IncomeTaxExpense/,
                  tags: ["IncomeTaxExpenseBenefit"] },
-  pretax:      { name: "Pre-tax profit",      statement: "Income statement",    instant: false, hint: /BeforeIncomeTaxes/,
+  pretax:      { name: "Pre-tax profit", plain: "Profit before tax",      statement: "Income statement",    instant: false, hint: /BeforeIncomeTaxes/,
                  tags: ["IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"] },
 };
 
@@ -61,7 +61,9 @@ function annualRows(gaap, tag, instant) {
 // ---------- 3. Labels ----------
 // A label is a first screen, not a verdict. Flat (exactly 0.0%) counts as "up" for sales.
 // The voice: short sentences, the numbers first, then one blunt line. Facts only, never advice.
+// Every line is written twice: once with the accounting word, once with the plain-English word.
 const up = x => `up ${pct(x)}`, down = x => `down ${pct(x)}`;
+const both = (name, say, w) => ({ name, reason: say(w.Noun), plain: say(w.Plain) });
 
 // Inventory, Receivables, SG&A (and later Labour force): is the item growing faster or slower than sales?
 const ABOUT_SAME_PP = 5;  // "about the same rate" means within this many percentage points
@@ -70,18 +72,18 @@ const KEEPING_PACE_PP = 2; // both rising within this many points of each other 
 function paceLabel(s, i, w) {
   const gap = round1(i - s); // positive = item grew faster than sales
   if (s >= 0) {
-    if (i <= 0) return { name: "Most favourable", reason: `Sales ${up(s)}. ${w.Noun} ${i < 0 ? down(i) : "flat"}. ${w.best}` };
-    if (Math.abs(gap) <= KEEPING_PACE_PP) return { name: "Neutral / watch", reason: `Sales ${up(s)}. ${w.Noun} ${up(i)}. Keeping pace with sales. Nothing to see. Yet.` };
-    if (i < s) return { name: "Good", reason: `Sales ${up(s)}. ${w.Noun} ${up(i)}. ${w.good}` };
-    return { name: "Warning", reason: `Sales grew ${pct(s)}. ${w.Noun} grew ${pct(i)}. ${gap > BIG_GAP_PP ? w.warnBig : w.warn}` };
+    if (i <= 0) return both("Most favourable", N => `Sales ${up(s)}. ${N} ${i < 0 ? down(i) : "flat"}. ${w.best}`, w);
+    if (Math.abs(gap) <= KEEPING_PACE_PP) return both("Neutral / watch", N => `Sales ${up(s)}. ${N} ${up(i)}. Keeping pace with sales. Nothing to see. Yet.`, w);
+    if (i < s) return both("Good", N => `Sales ${up(s)}. ${N} ${up(i)}. ${w.good}`, w);
+    return both("Warning", N => `Sales grew ${pct(s)}. ${N} grew ${pct(i)}. ${gap > BIG_GAP_PP ? w.warnBig : w.warn}`, w);
   }
-  if (i >= 0) return { name: "Risk rising", reason: `Sales ${down(s)}. ${w.Noun} ${i > 0 ? up(i) : "flat"}. ${w.risk}` };
-  if (Math.abs(gap) <= ABOUT_SAME_PP) return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${w.Noun} ${down(i)}. Shrinking in step. Nothing to see. Yet.` };
-  if (gap < 0) return { name: "Good", reason: `Sales ${down(s)}. ${w.Noun} ${down(i)}. ${w.cutFast}` };
-  return { name: "Warning", reason: `Sales ${down(s)}. ${w.Noun} down only ${pct(i)}. ${w.cutSlow}` };
+  if (i >= 0) return both("Risk rising", N => `Sales ${down(s)}. ${N} ${i > 0 ? up(i) : "flat"}. ${w.risk}`, w);
+  if (Math.abs(gap) <= ABOUT_SAME_PP) return both("Neutral / watch", N => `Sales ${down(s)}. ${N} ${down(i)}. Shrinking in step. Nothing to see. Yet.`, w);
+  if (gap < 0) return both("Good", N => `Sales ${down(s)}. ${N} ${down(i)}. ${w.cutFast}`, w);
+  return both("Warning", N => `Sales ${down(s)}. ${N} down only ${pct(i)}. ${w.cutSlow}`, w);
 }
 const WORDS = {
-  inventory: { Noun: "Inventory",
+  inventory: { Noun: "Inventory", Plain: "Unsold stock",
     best: "Selling more with less on the shelf. Beautiful.",
     good: "They're selling it faster than they're stacking it. That's how it should work.",
     warn: "The shelves are filling a little faster than they empty.",
@@ -89,7 +91,7 @@ const WORDS = {
     risk: "Less going out, more piling in. Wrong direction.",
     cutFast: "They cut stock faster than sales fell. Somebody's paying attention.",
     cutSlow: "The business is shrinking faster than the stockroom." },
-  receivables: { Noun: "Receivables",
+  receivables: { Noun: "Receivables", Plain: "Unpaid customer bills",
     best: "More sales, fewer unpaid bills. Customers are paying up.",
     good: "Sales are outrunning the unpaid bills. That's how it should work.",
     warn: "The IOUs are growing a bit faster than the sales.",
@@ -97,7 +99,7 @@ const WORDS = {
     risk: "Fewer sales, more unpaid bills. Wrong direction.",
     cutFast: "Unpaid bills fell faster than sales. Somebody's collecting.",
     cutSlow: "The business is shrinking faster than the unpaid bills." },
-  sga: { Noun: "SG&A",
+  sga: { Noun: "SG&A", Plain: "Overheads",
     best: "More sales, lower overheads. That almost never happens.",
     good: "Overheads are growing slower than the business. That's the whole trick.",
     warn: "Overheads are edging ahead of sales. Not a crisis. Not nothing.",
@@ -105,43 +107,86 @@ const WORDS = {
     risk: "Smaller business, bigger overheads. Wrong direction.",
     cutFast: "They cut overheads faster than sales fell. Somebody's paying attention.",
     cutSlow: "The business is shrinking faster than its overheads." },
+  capex:  { Noun: "Capital spending", Plain: "Spending on buildings and equipment" },
+  rnd:    { Noun: "R&D", Plain: "Research spending" },
+  margin: { Noun: "Gross margin", Plain: "The slice of each sale kept after direct costs" },
+  tax:    { Noun: "Tax rate", Plain: "Tax rate" },
 };
 
 // R&D and Capital expenditure: spending more is not bad in itself.
 // The warning is for cutting investment while sales grow.
 const BIG_BET_TIMES = 2; // "a big bet" means growing more than this many times the sales rate
-function investLabel(s, i, Noun) {
+function investLabel(s, i, w) {
   if (s >= 0) {
-    if (i < 0) return { name: "Warning", reason: `Sales ${up(s)}. ${Noun} ${down(i)}. Growing today, spending less on tomorrow. Ask why.` };
-    if (i > BIG_BET_TIMES * s) return { name: "Neutral / watch", reason: `Sales ${up(s)}. ${Noun} ${up(i)}. That's a big bet. On what?` };
-    return { name: "Good", reason: `Sales ${up(s)}. ${Noun} ${i > 0 ? up(i) : "flat"}. The business grows. The investment keeps going. Good.` };
+    if (i < 0) return both("Warning", N => `Sales ${up(s)}. ${N} ${down(i)}. Growing today, spending less on tomorrow. Ask why.`, w);
+    if (i > BIG_BET_TIMES * s) return both("Neutral / watch", N => `Sales ${up(s)}. ${N} ${up(i)}. That's a big bet. On what?`, w);
+    return both("Good", N => `Sales ${up(s)}. ${N} ${i > 0 ? up(i) : "flat"}. The business grows. The investment keeps going. Good.`, w);
   }
-  if (i > 0) return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${Noun} ${up(i)}. Spending into a dip. Brave or stubborn. Find out which.` };
-  if (i < 0) return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${Noun} ${down(i)}. Planned diet or forced cut? The filing will say.` };
-  return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${Noun} flat. Holding the line while sales fall. Worth a look.` };
+  if (i > 0) return both("Neutral / watch", N => `Sales ${down(s)}. ${N} ${up(i)}. Spending into a dip. Brave or stubborn. Find out which.`, w);
+  if (i < 0) return both("Neutral / watch", N => `Sales ${down(s)}. ${N} ${down(i)}. Planned diet or forced cut? The filing will say.`, w);
+  return both("Neutral / watch", N => `Sales ${down(s)}. ${N} flat. Holding the line while sales fall. Worth a look.`, w);
 }
 
 // Gross profit: did the margin widen or narrow? Measured in percentage points.
 const MARGIN_STEADY_PP = 0.5;
 function marginLabel(s, change, thisM, lastM) {
-  const moved = `${one(lastM)}% to ${one(thisM)}% (${signed(change)} points)`;
-  if (Math.abs(change) <= MARGIN_STEADY_PP) return { name: "Neutral / watch", reason: `Gross margin: ${one(lastM)}% last year, ${one(thisM)}% now. Steady. Boring. Boring is fine.` };
+  const w = WORDS.margin, moved = `${one(lastM)}% to ${one(thisM)}% (${signed(change)} points)`;
+  if (Math.abs(change) <= MARGIN_STEADY_PP) return both("Neutral / watch", N => `${N}: ${one(lastM)}% last year, ${one(thisM)}% now. Steady. Boring. Boring is fine.`, w);
   if (change > 0) return s >= 0
-    ? { name: "Most favourable", reason: `Gross margin went from ${moved}. Sales ${up(s)} too. Selling more and keeping more of each sale. That's the dream.` }
-    : { name: "Good", reason: `Gross margin went from ${moved}, with sales ${down(s)}. Smaller, but richer per sale.` };
+    ? both("Most favourable", N => `${N} went from ${moved}. Sales ${up(s)} too. Selling more and keeping more of each sale. That's the dream.`, w)
+    : both("Good", N => `${N} went from ${moved}, with sales ${down(s)}. Smaller, but richer per sale.`, w);
   return s < 0
-    ? { name: "Risk rising", reason: `Gross margin slipped from ${moved}. Sales ${down(s)}. Fewer sales, thinner sales. Wrong direction, twice.` }
-    : { name: "Warning", reason: `Gross margin slipped from ${moved} while sales grew ${pct(s)}. Selling more. Keeping less of each sale.` };
+    ? both("Risk rising", N => `${N} slipped from ${moved}. Sales ${down(s)}. Fewer sales, thinner sales. Wrong direction, twice.`, w)
+    : both("Warning", N => `${N} slipped from ${moved} while sales grew ${pct(s)}. Selling more. Keeping less of each sale.`, w);
 }
 
 // Effective tax rate: steady is good. A big drop flatters profit and may not repeat.
 const TAX_STEADY_PP = 2;
 function taxLabel(change, thisR, lastR) {
-  const moved = `${one(lastR)}% to ${one(thisR)}% (${signed(change)} points)`;
-  if (Math.abs(change) <= TAX_STEADY_PP) return { name: "Good", reason: `Tax rate: ${one(lastR)}% last year, ${one(thisR)}% now. Steady. Nothing to see here.` };
-  if (change < 0) return { name: "Neutral / watch", reason: `Tax rate fell from ${moved}. Profit got a lift from a smaller tax bill. That kind of lift doesn't always repeat.` };
-  return { name: "Warning", reason: `Tax rate jumped from ${moved}. Either this year is high or last year was low. Find out which.` };
+  const w = WORDS.tax, moved = `${one(lastR)}% to ${one(thisR)}% (${signed(change)} points)`;
+  if (Math.abs(change) <= TAX_STEADY_PP) return both("Good", N => `${N}: ${one(lastR)}% last year, ${one(thisR)}% now. Steady. Nothing to see here.`, w);
+  if (change < 0) return both("Neutral / watch", N => `${N} fell from ${moved}. Profit got a lift from a smaller tax bill. That kind of lift doesn't always repeat.`, w);
+  return both("Warning", N => `${N} jumped from ${moved}. Either this year is high or last year was low. Find out which.`, w);
 }
+
+// The last line of a card, one for each reader. Same card, different question.
+// Investor: what to check in the filing before trusting the number. COO: what to ask inside the business.
+// Never buy or sell advice. Order: [investor, coo] for good, watch, warn.
+const NEXT = {
+  "Inventory": {
+    good:  ["Check the inventory note. Lean stock is only good if the shelves weren't empty.", "Ask whether anything ran out. Lean is good. Empty is not."],
+    watch: ["Check next quarter's inventory. One year in step proves little.", "Ask which lines are building stock and which are running down."],
+    warn:  ["Read the inventory note: raw materials, or finished goods nobody bought?", "Ask which products are piling up, and who signed the orders."] },
+  "Accounts receivable": {
+    good:  ["Check the bad-debt allowance. Fast collection should not come from writing bills off.", "Ask what changed in collections, and keep doing it."],
+    watch: ["Check how long customers take to pay, in the notes. Steady is the goal.", "Ask whether any big customer is paying later than last year."],
+    warn:  ["Read the receivables note: a few big customers, or everyone paying late?", "Ask who owes the most, and how old the oldest bills are."] },
+  "Capital expenditure": {
+    good:  ["Check the cash flow statement. What was the money spent on?", "Ask which projects got the money, and when they pay back."],
+    watch: ["Check what management says the spending is for (MD&A, Liquidity).", "Ask for the business case behind the biggest project."],
+    warn:  ["Check whether spending still covers wear and tear. Compare it with depreciation.", "Ask what was postponed, and what breaks if it stays postponed."] },
+  "Research and development": {
+    good:  ["Check what the R&D is aimed at. The filing usually names the programmes.", "Ask which projects are closest to launch."],
+    watch: ["Check what the bigger budget is for, and whether it is a one-off.", "Ask what the extra money is buying, and by when."],
+    warn:  ["Check why it fell: projects finished, or projects cancelled?", "Ask which projects were cut, and what they would have become."] },
+  "Gross profit": {
+    good:  ["Check why the margin widened: prices up, costs down, or a richer mix?", "Ask which products drove the gain, and whether it will last."],
+    watch: ["Check margin by segment. A steady total can hide two moving parts.", "Ask which product lines gained margin and which lost it."],
+    warn:  ["Check what squeezed the margin: input costs, discounts, or a cheaper mix?", "Ask where the squeeze came from: suppliers, pricing or mix."] },
+  "SG&A": {
+    good:  ["Check the saving isn't a one-off, like a pause in advertising.", "Ask what was cut, and whether sales will miss it."],
+    watch: ["Check the breakdown: selling, marketing, head office.", "Ask which overhead line grew fastest."],
+    warn:  ["Check what grew: people, advertising, or one-off costs?", "Ask which budgets overran, and what the money bought."] },
+  "Effective tax rate": {
+    good:  ["Check the tax note anyway. A steady rate can hide one-offs that cancel out.", "Ask finance whether anything in the tax note is about to change."],
+    watch: ["Read the tax rate reconciliation in the notes. Find the one-off.", "Ask finance what lowered the rate, and whether it repeats."],
+    warn:  ["Read the tax rate reconciliation in the notes. Which year was the odd one?", "Ask finance what raised the rate, and whether it stays."] },
+};
+const PLAIN_SIGNAL = {
+  "Inventory": "Unsold stock", "Accounts receivable": "Unpaid customer bills", "Capital expenditure": "Buildings and equipment",
+  "Research and development": "Research spending", "Gross profit": "Profit after direct costs", "SG&A": "Overheads",
+  "Effective tax rate": "Share of profit paid in tax", "Labour force": "People employed",
+};
 
 // A label's tone, for the small mark beside it: hollow = good, half = watch, filled = warning.
 const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
@@ -199,7 +244,7 @@ export function buildCards(facts, cik, info = {}) {
 
   // One table row: item, this year, last year, formula and result, source.
   const inputRow = (f, formula = []) => ({
-    item: f.item, tag: f.tag, statement: f.statement, url: f.this_year.url,
+    item: f.item, item_plain: CONCEPTS[f.key].plain, tag: f.tag, statement: f.statement, url: f.this_year.url,
     this_year: fmt(f.this_year.usd), last_year: fmt(f.last_year.usd), formula,
   });
   const growthRow = f => {
@@ -209,13 +254,14 @@ export function buildCards(facts, cik, info = {}) {
     return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${g < 0 ? "−" : ""}${one(Math.abs(g))}%`]), growth_pct: g };
   };
   const industry = info.sicDescription ? ` (SEC industry: ${info.sicDescription})` : "";
-  const noCard = (signal, state, note) => ({ signal, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, status: "Draft", note, big: "—", small: "" });
+  const noCard = (signal, state, note) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: null, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, status: "Draft", note, big: "—", small: "" });
   // A missing item is "Doesn't apply" only where we know why; otherwise it is "Not found".
   const missingCard = (signal, missing, financialNote) => financialNote && isFinancial(info.sic)
     ? noCard(signal, "Doesn't apply", `${financialNote}${industry}.`)
     : noCard(signal, "Not found", `Not found in the SEC data for these two years: ${missing.join(", ")}. The company may not report it as its own line. Missing does not mean zero.`);
   // big and small: the one number shown on the tile, and the line under it.
-  const card = (signal, rows, label, extra = {}) => ({ signal, what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, status: "Draft", big: "—", small: "", ...extra });
+  const nextFor = (signal, label) => { const pair = label && NEXT[signal]?.[TONE[label.name]]; return pair ? { investor: pair[0], coo: pair[1] } : null; };
+  const card = (signal, rows, label, extra = {}) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: nextFor(signal, label), what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, status: "Draft", big: "—", small: "", ...extra });
 
   // 7. The last few years, for context. The label still comes from the latest two years only.
   // Each trend row compares one year with the year before, using the same rules as the label.
@@ -230,24 +276,24 @@ export function buildCards(facts, cik, info = {}) {
   const salesSeries = seriesOf(F.sales);
   const salesGrowth = k => growthOf(salesSeries[k], salesSeries[k + 1]);
   // rowFor(k) returns the cells for year k against year k+1, or null where the history runs out.
-  function trendTable(columns, rowFor) {
+  function trendTable(columns, rowFor, plainColumns = columns) {
     const rows = [];
     for (let k = 0; k + 1 < ends.length; k++) { const r = rowFor(k); if (!r) break; rows.push([fyLabel(ends[k]), ...r]); }
-    return rows.length > 1 ? { columns: ["Year", ...columns], rows } : null;
+    return rows.length > 1 ? { columns: ["Year", ...columns], columns_plain: ["Year", ...plainColumns], rows } : null;
   }
   const paceTrend = (key, labeller) => {
     const it = seriesOf(F[key]);
     return trendTable(["Sales growth", `${CONCEPTS[key].name} growth`, "Label"], k => {
       const sg = salesGrowth(k), ig = growthOf(it[k], it[k + 1]);
       return sg === null || ig === null ? null : [signedPct(sg), signedPct(ig), labeller(sg, ig).name];
-    });
+    }, ["Sales growth", `${CONCEPTS[key].plain} growth`, "Label"]);
   };
-  const rateTrend = (name, rates, labelFor) => trendTable([name, "Change", "Label"], k => {
+  const rateTrend = (name, plainName, rates, labelFor) => trendTable([name, "Change", "Label"], k => {
     const [a, b] = [rates[k], rates[k + 1]];
     if (a === null || b === null) return null;
     const change = round1(a - b);
     return [`${one(a)}%`, `${signed(change)} points`, labelFor(k, change, a, b)];
-  });
+  }, [plainName, "Change", "Label"]);
 
   const salesRow = growthRow(F.sales);
   const s = salesRow.growth_pct;
@@ -267,7 +313,7 @@ export function buildCards(facts, cik, info = {}) {
     if (F.cost) { // gross profit = sales − cost of sales, so every step can be checked
       const [ca, cb] = [F.cost.this_year.usd, F.cost.last_year.usd];
       [ga, gb] = [sa - ca, sb - cb];
-      rows = [salesRow, inputRow(F.cost), { item: "Gross profit", statement: "Worked out here", this_year: fmt(ga), last_year: fmt(gb),
+      rows = [salesRow, inputRow(F.cost), { item: "Gross profit", item_plain: "Profit after direct costs", statement: "Worked out here", this_year: fmt(ga), last_year: fmt(gb),
         formula: [`${fmt(sa)} − ${fmt(ca)} = ${fmt(ga)}`, `${fmt(sb)} − ${fmt(cb)} = ${fmt(gb)}`] }];
     } else {      // no cost of sales line, but the filing gives gross profit itself
       [ga, gb] = [F.gross.this_year.usd, F.gross.last_year.usd];
@@ -275,11 +321,11 @@ export function buildCards(facts, cik, info = {}) {
     }
     const [ma, mb] = [round1(ga / sa * 100), round1(gb / sb * 100)];
     const change = round1(ma - mb);
-    rows.push({ item: "Gross margin", statement: "Worked out here", this_year: `${one(ma)}%`, last_year: `${one(mb)}%`,
+    rows.push({ item: "Gross margin", item_plain: "Kept from each sales dollar", statement: "Worked out here", this_year: `${one(ma)}%`, last_year: `${one(mb)}%`,
       formula: [`${fmt(ga)} ÷ ${fmt(sa)} × 100 = ${one(ma)}%`, `${fmt(gb)} ÷ ${fmt(sb)} × 100 = ${one(mb)}%`, `${one(ma)} − ${one(mb)} = ${signed(change)} percentage points`] });
     const grossSeries = F.cost ? seriesOf(F.cost).map((c, k) => c === null ? null : salesSeries[k] - c) : seriesOf(F.gross);
     const margins = grossSeries.map((g, k) => g === null ? null : round1(g / salesSeries[k] * 100));
-    const trend = rateTrend("Gross margin", margins, (k, ch, a, b) => salesGrowth(k) === null ? "—" : marginLabel(salesGrowth(k), ch, a, b).name);
+    const trend = rateTrend("Gross margin", "Kept from each sales dollar", margins, (k, ch, a, b) => salesGrowth(k) === null ? "—" : marginLabel(salesGrowth(k), ch, a, b).name);
     return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year`, trend });
   }
 
@@ -291,19 +337,19 @@ export function buildCards(facts, cik, info = {}) {
     if (pa <= 0 || pb <= 0) return card("Effective tax rate", rows, null, { state: "Doesn't apply", note: "Pre-tax profit was zero or a loss in one of the two years, so a tax rate would mislead." });
     const [ra, rb] = [round1(ta / pa * 100), round1(tb / pb * 100)];
     const change = round1(ra - rb);
-    rows.push({ item: "Effective tax rate", statement: "Worked out here", this_year: `${one(ra)}%`, last_year: `${one(rb)}%`,
+    rows.push({ item: "Effective tax rate", item_plain: "Share of profit paid in tax", statement: "Worked out here", this_year: `${one(ra)}%`, last_year: `${one(rb)}%`,
       formula: [`${fmt(ta)} ÷ ${fmt(pa)} × 100 = ${one(ra)}%`, `${fmt(tb)} ÷ ${fmt(pb)} × 100 = ${one(rb)}%`, `${one(ra)} − ${one(rb)} = ${signed(change)} percentage points`] });
     const [taxes, pretaxes] = [seriesOf(F.tax), seriesOf(F.pretax)];
     const rates = taxes.map((t, k) => t === null || pretaxes[k] === null || pretaxes[k] <= 0 ? null : round1(t / pretaxes[k] * 100));
-    const trend = rateTrend("Effective tax rate", rates, (k, ch, a, b) => taxLabel(ch, a, b).name);
+    const trend = rateTrend("Effective tax rate", "Share of profit paid in tax", rates, (k, ch, a, b) => taxLabel(ch, a, b).name);
     return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend });
   }
 
   const cards = [
     versusSales("Inventory", "inventory", (a, b) => paceLabel(a, b, WORDS.inventory), "Banks and insurers don't hold stock to sell. Nothing to read here"),
     versusSales("Accounts receivable", "receivables", (a, b) => paceLabel(a, b, WORDS.receivables), "Banks and insurers lend money rather than bill customers. Trade receivables are the wrong yardstick"),
-    versusSales("Capital expenditure", "capex", (a, b) => investLabel(a, b, "Capital spending")),
-    versusSales("Research and development", "rnd", (a, b) => investLabel(a, b, "R&D")),
+    versusSales("Capital expenditure", "capex", (a, b) => investLabel(a, b, WORDS.capex)),
+    versusSales("Research and development", "rnd", (a, b) => investLabel(a, b, WORDS.rnd)),
     grossProfit(),
     versusSales("SG&A", "sga", (a, b) => paceLabel(a, b, WORDS.sga)),
     taxRate(),
@@ -326,6 +372,7 @@ export function buildCards(facts, cik, info = {}) {
     fiscal: { this_year: { fy: fyLabel(thisEnd), end: thisEnd }, last_year: { fy: fyLabel(lastEnd), end: lastEnd } },
     filing: { accn: F.sales.this_year.accn, filed: F.sales.this_year.filed, url: F.sales.this_year.url },
     unit,
+    rules: "US GAAP", // the accounting rules the filing follows; two companies on different rules are not comparable
     // The raw inputs, each once, for checking against the filing.
     inputs: found.filter(f => !(f.key === "gross" && F.cost)).map(f => ({ item: f.item, tag: f.tag, statement: f.statement, this_year: f.this_year, last_year: f.last_year, shown: [fmt(f.this_year.usd), fmt(f.last_year.usd)] })),
     missing: Object.keys(F).filter(k => !F[k] && k !== "gross" && !(k === "cost" && F.gross)).map(k => CONCEPTS[k].name).concat("Headcount"),
