@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Signal Cards</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -216,13 +216,37 @@
   @media (max-width: 420px) { .cmp-head, .cmp-two { gap: 10px; } }
 
   footer { text-align: center; font-size: 13px; color: var(--muted); padding: 72px 0 40px; }
+
+  /* The name plays with itself: tap it and "Signal Cards" becomes "Card Signals". It also takes you home. */
+  .brand { gap: .28em; } /* the space between the two words */
+  .brand span { display: inline-block; transition: transform .14s ease, opacity .14s ease; }
+  .brand.swap .w1 { transform: translateX(14px); opacity: 0; }
+  .brand.swap .w2 { transform: translateX(-14px); opacity: 0; }
+
+  /* On a phone, Home and All eight live in a bar at the bottom, under your thumb. On a computer they stay in the top bar. */
+  .tabbar { display: none; }
+  @media (max-width: 699px) {
+    .barnav .pill { display: none; }
+    .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; justify-content: center; gap: 28px;
+              padding: 6px 16px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent);
+              -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+    .tabbar[hidden] { display: none; }
+    .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px; min-height: 50px;
+           background: none; border: 0; padding: 2px 8px; font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer; }
+    .tab svg { width: 26px; height: 26px; color: var(--text); transition: transform .12s ease; }
+    .tab:active svg { transform: scale(.86); }
+    .tab.bounce svg { animation: bounce .34s ease; }
+    body.has-tabbar footer { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  }
+  @keyframes bounce { 0% { transform: scale(.86); } 45% { transform: scale(1.28) translateY(-3px); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .brand span { transition: none; } .tab svg { transition: none; } .tab.bounce svg { animation: none; } }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
-    <a class="brand" href="./" id="home">Signal Cards</a>
+    <a class="brand" href="./" id="home" aria-label="Signal Cards, home"><span class="w1">Signal</span> <span class="w2">Cards</span></a>
     <span class="barnav">
       <button class="pill" type="button" id="gohome" hidden>Home</button>
       <button class="pill" type="button" id="goall" data-card="0" hidden>All eight</button>
@@ -282,6 +306,17 @@
 
     <article id="detail" hidden></article>
   </main>
+
+  <nav class="tabbar" id="tabbar" aria-label="Go to" hidden>
+    <button class="tab" type="button" id="tabhome">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.2V19a1.5 1.5 0 0 0 1.5 1.5h2.8v-5.3h4.4v5.3H17a1.5 1.5 0 0 0 1.5-1.5V9.2"/></svg>
+      Home
+    </button>
+    <button class="tab" type="button" id="taball" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
+      <span id="taballlabel">All eight</span>
+    </button>
+  </nav>
 
   <footer>
     <p id="source"></p>
@@ -444,7 +479,9 @@
     $("ask").classList.toggle("small", !!ticker);
     $("gohome").hidden = !ticker;                       // anywhere but the home screen
     $("goall").hidden = !card;                          // on a single card
-    $("goall").textContent = vs ? "Compare" : "All eight";
+    $("goall").textContent = $("taballlabel").textContent = vs ? "Compare" : "All eight";
+    $("tabbar").hidden = !ticker; $("taball").hidden = !card;   // the same two buttons, at the bottom on a phone
+    document.body.classList.toggle("has-tabbar", !!ticker);
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
       $("ask").hidden = false; $("overview").hidden = $("detail").hidden = $("switches").hidden = true; $("source").textContent = ""; $("q").value = "";
@@ -644,8 +681,26 @@
   $("stop").addEventListener("click", () => data && go(data.ticker, 0, ""));
 
   // ---------- Clicks and keys ----------
-  $("home").addEventListener("click", e => { e.preventDefault(); go(""); $("q").focus(); });
+  // Tapping the name swaps its two words, for fun, and takes you home.
+  let swapped = false;
+  $("home").addEventListener("click", e => {
+    e.preventDefault();
+    const el = $("home");
+    el.classList.add("swap");
+    setTimeout(() => { swapped = !swapped; el.querySelector(".w1").textContent = swapped ? "Card" : "Signal"; el.querySelector(".w2").textContent = swapped ? "Signals" : "Cards"; el.classList.remove("swap"); }, 150);
+    if (where().ticker) go("");
+    $("q").focus();
+  });
   $("gohome").addEventListener("click", () => go(""));
+  // The bottom bar on phones: the icon bounces, then you go. Without motion, you just go.
+  const still = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const press = (btn, then) => {
+    if (still()) return then();
+    btn.classList.remove("bounce"); void btn.offsetWidth; btn.classList.add("bounce");
+    setTimeout(() => { btn.classList.remove("bounce"); then(); }, 200);
+  };
+  $("tabhome").addEventListener("click", e => press(e.currentTarget, () => go("")));
+  $("taball").addEventListener("click", e => press(e.currentTarget, () => { if (data && where().card) go(data.ticker, 0); }));
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);
