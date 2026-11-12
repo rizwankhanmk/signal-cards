@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Three greys, light and dark. The fun is in the words, never in clutter. */
+  :root { --bg: #ffffff; --surface: #f5f5f7; --text: #1d1d1f; --muted: #6e6e73; color-scheme: light; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #1d1d1f; --surface: #2a2a2d; --text: #f5f5f7; --muted: #a1a1a6; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #1d1d1f; --surface: #2a2a2d; --text: #f5f5f7; --muted: #a1a1a6; color-scheme: dark; }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+         font-size: 17px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  .muted { color: var(--muted); }
+  .hair { border: 0; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+
+  /* Top bar */
+  .bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 14px; }
+  .brand { font-weight: 600; text-decoration: none; letter-spacing: -.01em; display: inline-flex; align-items: center; min-height: 44px; }
+  .ghost { background: none; border: 0; padding: 6px 0; min-height: 44px; cursor: pointer; color: var(--muted); font-size: 14px; }
+  .ghost:hover { color: var(--text); }
+
+  /* Search box */
+  .ask { text-align: center; padding: 9vh 0 6vh; }
+  .ask.small { padding: 3vh 0 4vh; }
+  .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 14px; text-wrap: balance; }
+  .ask.small .motto, .ask.small .lede, .ask.small .tries { display: none; }
+  .lede { font-size: 19px; color: var(--muted); margin: 0 0 34px; }
+  form { display: flex; gap: 8px; justify-content: center; }
+  .box { position: relative; width: min(21rem, 100%); }
+  input { font: inherit; font-size: 18px; font-weight: 500; width: 100%; padding: 12px 20px; color: var(--text);
+          background: var(--surface); border: 1px solid transparent; border-radius: 999px; }
+  input::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
+  input:focus { outline: none; border-color: var(--text); }
+  .go { font-size: 17px; font-weight: 500; padding: 12px 22px; border-radius: 999px; border: 0; cursor: pointer; background: var(--text); color: var(--bg); }
+  .hits { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; text-align: left;
+          background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 18px;
+          box-shadow: 0 12px 32px color-mix(in srgb, #000 16%, transparent); }
+  .hits li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 9px 14px; min-height: 44px; border-radius: 12px; cursor: pointer; font-size: 16px; }
+  .hits li[aria-selected="true"], .hits li:hover { background: var(--surface); }
+  .hits .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hits .t { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tries { margin: 22px 0 0; font-size: 15px; color: var(--muted); display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .chip { background: none; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 999px; padding: 6px 16px; min-height: 44px; cursor: pointer; font-size: 15px; }
+  button.chip:hover { background: var(--surface); }
+  .tries.soon { margin-top: 12px; font-size: 14px; }
+  .soon .chip { border-style: dashed; cursor: default; font-size: 14px; color: var(--muted); min-height: 0; }
+
+  /* Company heading */
+  .head { text-align: center; padding: 0 0 36px; }
+  .head h1 { font-size: clamp(26px, 4.6vw, 40px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
+  .head p { margin: 0; font-size: 15px; }
+
+  /* The small mark beside a label: hollow = good, half = watch, filled = warning. Shape, not colour. */
+  .mark { display: inline-block; width: .62em; height: .62em; border-radius: 50%; border: 1.5px solid currentColor; margin-right: .5em; vertical-align: .02em; }
+  .mark.watch { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+  .mark.warn { background: currentColor; }
+
+  /* Eight tiles */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media (max-width: 699px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 700px) and (max-width: 900px) { .grid .tile { padding: 16px; } }
+  .tile { display: flex; flex-direction: column; text-align: left; min-height: 196px; padding: 20px; background: var(--surface);
+          border: 0; border-radius: 20px; cursor: pointer; transition: transform .15s ease; container-type: inline-size; }
+  .tile:hover { transform: translateY(-2px); }
+  .t-name { font-size: 14px; font-weight: 500; color: var(--muted); }
+  .t-big { font-size: clamp(30px, 4.4vw, 42px); font-size: clamp(20px, 23cqw, 42px); /* sized to the tile, so it never spills */ font-weight: 700; letter-spacing: -.035em; line-height: 1; margin-top: auto; font-variant-numeric: tabular-nums; }
+  .t-big.long { font-size: clamp(18px, 17cqw, 42px); } /* a rare very long number, like +1154.3% */
+  .t-small { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 1.45em; }
+  .t-label { font-size: 15px; font-weight: 600; margin-top: 14px; }
+  .tile.empty .t-big, .tile.empty .t-label { color: var(--muted); }
+  .key { text-align: center; font-size: 13px; color: var(--muted); margin: 26px 0 0; }
+  .key span { white-space: nowrap; margin: 0 .7em; }
+  @media (max-width: 420px) { .tile { min-height: 168px; padding: 16px; border-radius: 16px; } .grid { gap: 10px; } }
+  @media (max-width: 699px), (min-width: 700px) and (max-width: 900px) {
+    .grid .t-top { min-height: 2.9em; align-items: flex-start; }
+    .grid .t-big { margin-top: 10px; }
+    .grid .t-small { min-height: 2.9em; }
+    .grid .t-label { margin-top: 6px; }
+  }
+  .t-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .badge { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .t-result { font-size: 12px; color: var(--muted); margin-top: 3px; min-height: 1.3em; }
+  .tile.down { outline: 1px dashed color-mix(in srgb, var(--text) 28%, transparent); outline-offset: -1px; background: none; }
+  .tile.down .t-label { color: var(--muted); font-weight: 500; }
+
+  /* Catch the flag: the score line, the guess buttons, the flip */
+  .score { display: flex; gap: 6px 16px; justify-content: center; align-items: baseline; flex-wrap: wrap; font-size: 15px; margin: -14px 0 26px; }
+  .score b { font-weight: 600; }
+  .ask-flag { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; margin: 44px 0 18px; }
+  .guess { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .guess button { font-size: 17px; font-weight: 500; padding: 12px 24px; border-radius: 999px; cursor: pointer; background: var(--surface); border: 1px solid transparent; }
+  .guess button:hover { border-color: var(--text); }
+  .verdict { font-size: 15px; color: var(--muted); margin: 0 0 6px; }
+  @keyframes flip { from { transform: rotateX(80deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .flipped { animation: flip .4s ease; }
+  @media (prefers-reduced-motion: reduce) { .flipped { animation: none; } .tile { transition: none; } }
+  .tick { display: flex; gap: 10px; align-items: center; font-size: 15px; margin: 8px 0 0; padding: 10px 0; min-height: 44px; cursor: pointer; width: fit-content; }
+  .tick input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--text); border-radius: 4px; }
+
+  /* One card, one screen */
+  .nav { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .hero { text-align: center; padding: 7vh 0 6vh; }
+  .hero .kicker { font-size: 15px; color: var(--muted); margin: 0 0 22px; }
+  .hero .big { font-size: clamp(64px, 17vw, 152px); font-weight: 700; letter-spacing: -.055em; line-height: .95; margin: 0; font-variant-numeric: tabular-nums; }
+  .hero .under { font-size: 17px; color: var(--muted); margin: 14px 0 0; }
+  .hero .name { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 0 0 12px; }
+  .hero .reveal { margin-top: 44px; }
+  .hero .line { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; line-height: 1.25; max-width: 30ch; margin: 0 auto; text-wrap: balance; }
+  .hero .line.plain { font-weight: 400; font-size: 19px; color: var(--muted); max-width: 44ch; letter-spacing: 0; }
+  .hero .what { font-size: 15px; color: var(--muted); max-width: 52ch; margin: 30px auto 0; text-wrap: pretty; }
+
+  .proof { padding: 28px 0 0; }
+  .proof + .proof { padding-top: 44px; }
+  .proof h2 { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 0 0 4px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; margin-top: 8px; }
+  th { font-weight: 500; color: var(--muted); font-size: 13px; }
+  th, td { text-align: left; padding: 12px 14px 12px 0; vertical-align: top; border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.f { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.lab { white-space: nowrap; }
+  .note { font-size: 14px; margin: 18px 0 0; }
+  .steps { display: flex; justify-content: space-between; gap: 16px; padding: 44px 0 0; font-size: 15px; }
+  .steps button { background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
+  .steps button:last-child { text-align: right; margin-left: auto; }
+  .steps small { display: block; color: var(--muted); font-size: 12px; }
+
+  /* The two switches */
+  .switches { display: flex; gap: 10px 14px; justify-content: center; flex-wrap: wrap; padding: 2px 0 10px; }
+  .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface); }
+  .seg button { position: relative; border: 0; background: none; padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
+  .seg button::after { content: ""; position: absolute; inset: -4px 0; } /* a taller area to tap */
+  .seg button[aria-pressed="true"] { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px color-mix(in srgb, #000 14%, transparent); }
+  .hero .next { font-size: 17px; max-width: 40ch; margin: 30px auto 0; text-wrap: balance; }
+  .hero .next small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+  /* Compare two companies */
+  .vs { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 34px 0 0; font-size: 15px; color: var(--muted); }
+  .vs .box { width: min(17rem, 100%); }
+  .vs input { font-size: 16px; padding: 9px 16px; }
+  .cmp-head, .cmp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .cmp-head { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 10px 0 12px; }
+  .cmp-head b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+  .cmp-head span { font-size: 13px; color: var(--muted); }
+  .cmp h3 { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 26px 0 10px; }
+  .cmp .tile { min-height: 150px; }
+  .cmp .t-name { display: none; }
+  .cmp .t-top { justify-content: flex-end; min-height: 1em; }
+  .banner { text-align: center; font-size: 15px; padding: 14px 18px; border-radius: 16px; background: var(--surface); margin: 0 0 18px; }
+  .banner b { font-weight: 600; }
+  @media (max-width: 420px) { .cmp-head, .cmp-two { gap: 10px; } }
+
+  footer { text-align: center; font-size: 13px; color: var(--muted); padding: 72px 0 40px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <a class="brand" href="./" id="home">Signal Cards</a>
+    <button class="ghost" id="theme" type="button" aria-label="Switch between light and dark"></button>
+  </div>
+
+  <div class="switches" id="switches" hidden>
+    <div class="seg" role="group" aria-label="Wording">
+      <button type="button" data-pref="lang" data-val="acct">Accounting</button><button type="button" data-pref="lang" data-val="plain">Plain English</button>
+    </div>
+    <div class="seg" role="group" aria-label="Reader">
+      <button type="button" data-pref="reader" data-val="investor">Investor</button><button type="button" data-pref="reader" data-val="coo">COO</button>
+    </div>
+  </div>
+
+  <main>
+    <section class="ask" id="ask">
+      <p class="motto" id="motto">Money talks. Learn to listen.</p>
+      <p class="lede">Type a company. Read its annual report in eight numbers.</p>
+      <form id="form">
+        <div class="box">
+          <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
+                 role="combobox" aria-expanded="false" aria-controls="hits" aria-autocomplete="list">
+          <ul class="hits" id="hits" role="listbox" hidden></ul>
+        </div>
+        <button class="go">Read</button>
+      </form>
+      <p class="tries">Try
+        <button class="chip" type="button" data-try="AAPL">Apple</button>
+        <button class="chip" type="button" data-try="COST">Costco</button>
+        <button class="chip" type="button" data-try="WDFC">WD-40</button>
+        <button class="chip" type="button" data-try="JPM">JPMorgan</button>
+      </p>
+      <p class="tries soon">Coming soon
+        <span class="chip">Singapore Airlines</span>
+        <span class="chip">Tata</span>
+      </p>
+    </section>
+
+    <section id="overview" hidden>
+      <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p></div>
+      <p class="score" id="score" hidden></p>
+      <div class="grid" id="grid"></div>
+      <div class="cmp" id="compare" hidden></div>
+      <p class="key" id="key" hidden>
+        <span><i class="mark good"></i>Good</span><span><i class="mark watch"></i>Watch</span><span><i class="mark warn"></i>Warning</span>
+      </p>
+      <form class="vs" id="form2" hidden>
+        <label for="q2" id="vslabel">Compare with</label>
+        <div class="box">
+          <input id="q2" placeholder="another company" autocomplete="off" spellcheck="false" maxlength="40" role="combobox" aria-expanded="false" aria-controls="hits2" aria-autocomplete="list">
+          <ul class="hits" id="hits2" role="listbox" hidden></ul>
+        </div>
+        <button class="ghost" type="button" id="stop" hidden>Stop comparing</button>
+      </form>
+    </section>
+
+    <article id="detail" hidden></article>
+  </main>
+
+  <footer>
+    <p id="source"></p>
+    <p>Educational, not financial advice.</p>
+  </footer>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  // Text from the data is shown as text, never as page code.
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // "2026-09-26" -> "26 Sep 2026"
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = iso => { const [y, m, d] = iso.slice(0, 10).split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
+  const mark = tone => tone ? `<i class="mark ${esc(tone)}" aria-hidden="true"></i>` : "";
+  const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
+
+  // ---------- The headline: one line for each day of the week ----------
+  const MOTTOS = [
+    "Just assume tomorrow is the exam.",        // Sunday
+    "Money talks. Learn to listen.",            // Monday
+    "Let the numbers do the talking.",          // Tuesday
+    "Every company's money tells a story.",     // Wednesday
+    "Follow the money.",                        // Thursday
+    "The numbers don't do spin.",               // Friday
+    "Read the money, not the headlines.",       // Saturday
+  ];
+  $("motto").textContent = MOTTOS[new Date().getDay()];
+
+  // ---------- Light and dark ----------
+  // Follows the computer's setting until you press the button; then it remembers your choice.
+  const root = document.documentElement;
+  const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  const paintTheme = () => { $("theme").textContent = isDark() ? "Light" : "Dark"; };
+  try { const saved = localStorage.getItem("theme"); if (saved === "dark" || saved === "light") root.dataset.theme = saved; } catch {}
+  $("theme").addEventListener("click", () => {
+    root.dataset.theme = isDark() ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+    paintTheme();
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintTheme);
+  paintTheme();
+
+  // ---------- What this browser remembers ----------
+  // Your guesses and your "checked" ticks, per company and fiscal year. Kept in this browser only.
+  const mem = {};
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)) ?? mem[k] ?? {}; } catch { return mem[k] ?? {}; } },
+    set(k, v) { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  const keyFor = (kind, d) => `sc:${kind}:${d.ticker}:${d.fiscal.this_year.end}`;
+  const guesses = d => store.get(keyFor("guess", d));   // { "3": "warn" }  or "skip" if revealed without guessing
+  const checks = d => store.get(keyFor("checked", d));  // { "3": true }
+  const TONES = { good: "Good", watch: "Watch", warn: "Warning" };
+  const canGuess = c => !!c.tone;                        // cards with no label have nothing to guess
+  const faceDown = (d, n) => canGuess(d.cards[n - 1]) && !guesses(d)[n];
+
+  // ---------- The two switches ----------
+  // Wording: accounting terms or plain English. Reader: investor or COO (same cards, different last line).
+  const prefs = { lang: "acct", reader: "investor", ...store.get("sc:prefs") };
+  const plain = () => prefs.lang === "plain";
+  const W = (o, k) => (plain() && o[k + "_plain"]) || o[k];          // W(card, "signal") -> the name in the chosen wording
+  const READER = { investor: "Investor · verify next", coo: "COO · ask inside" };
+  const paintPrefs = () => document.querySelectorAll("[data-pref]").forEach(b => b.setAttribute("aria-pressed", String(prefs[b.dataset.pref] === b.dataset.val)));
+  paintPrefs();
+
+  // ---------- What the address bar says ----------
+  // ?ticker=AAPL shows the eight tiles. ?ticker=AAPL&card=3 shows card 3 on its own screen.
+  // ?ticker=AAPL&vs=COST shows the two companies side by side.
+  let data = null;     // the company currently loaded
+  let other = null;    // the company it is being compared with, if any
+  let justFlipped = 0; // the card that was just guessed, so its tile can flip once
+  const loaded = {};   // companies already fetched in this visit
+  const where = () => {
+    const q = new URLSearchParams(location.search);
+    const n = Number(q.get("card"));
+    const ticker = (q.get("ticker") || "").trim().toUpperCase(), vs = (q.get("vs") || "").trim().toUpperCase();
+    return { ticker, card: Number.isInteger(n) && n >= 1 && n <= 8 ? n : 0, vs: vs && vs !== ticker ? vs : "" };
+  };
+  // vs left out: keep the comparison while you stay on the same company, drop it when you pick a new one.
+  const go = (ticker, card = 0, vs) => {
+    const now = where();
+    if (vs === undefined) vs = ticker && ticker === now.ticker ? now.vs : "";
+    history.pushState(null, "", ticker ? `?ticker=${encodeURIComponent(ticker)}${card ? `&card=${card}` : ""}${vs ? `&vs=${encodeURIComponent(vs)}` : ""}` : "./");
+    render();
+    scrollTo(0, 0);
+  };
+  const fail = (title, why) => {
+    data = other = null;
+    $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false; $("switches").hidden = true;
+    $("grid").innerHTML = ""; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("form2").hidden = true; $("source").textContent = "";
+    $("company").textContent = title; $("meta").textContent = why;
+  };
+  async function load(ticker) {
+    if (loaded[ticker]) return loaded[ticker];
+    const r = await fetch(`/api/cards?ticker=${encodeURIComponent(ticker)}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    return loaded[d.ticker] = loaded[ticker] = d;
+  }
+  const sourceLine = d => `${esc(d.company)}: ${esc(d.unit)}, as printed in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(day(d.filing.filed))}</a>. Pulled from the SEC on ${esc(day(d.fetched_at))}.`;
+
+  // One tile. Face down it shows only the two numbers.
+  function tile(d, n) {
+    const c = d.cards[n - 1], g = guesses(d), ch = checks(d), down = faceDown(d, n);
+    const result = !canGuess(c) || down || g[n] === "skip" ? "" : g[n] === c.tone ? "You caught it" : `You said ${TONES[g[n]]}`;
+    return `
+      <button class="tile${c.label ? "" : " empty"}${down ? " down" : ""}${d === data && n === justFlipped ? " flipped" : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}">
+        <span class="t-top"><span class="t-name">${esc(W(c, "signal"))}</span>${c.rows.length && !down ? `<span class="badge">${ch[n] ? "Checked" : "Draft"}</span>` : ""}</span>
+        <span class="t-big${c.big.length >= 8 ? " long" : ""}">${esc(c.big)}</span>
+        <span class="t-small">${esc(c.small)}</span>
+        <span class="t-label">${down ? "Tap to guess" : mark(c.tone) + esc(c.label ? c.label.name : c.state)}</span>
+        <span class="t-result">${esc(result)}</span>
+      </button>`;
+  }
+
+  async function render() {
+    const { ticker, card, vs } = where();
+    $("ask").classList.toggle("small", !!ticker);
+    if (!ticker) {
+      data = other = null; document.title = "Signal Cards";
+      $("ask").hidden = false; $("overview").hidden = $("detail").hidden = $("switches").hidden = true; $("source").textContent = ""; $("q").value = "";
+      return;
+    }
+    if (!data || data.ticker !== ticker || (other?.ticker || "") !== vs) {
+      if (!loaded[ticker] || (vs && !loaded[vs])) fail(`Reading ${ticker}${vs ? ` and ${vs}` : ""}…`, "");
+      try {
+        const [a, b] = await Promise.all([load(ticker), vs ? load(vs) : null]);
+        const now = where();
+        if (now.ticker !== ticker || now.vs !== vs) return; // you asked for something else while this was loading
+        data = a; other = b;
+      } catch (e) {
+        return fail("Nothing to read.", e.message || "Something went wrong. Is the server still running in the Terminal?");
+      }
+    }
+    const d = data, T = d.fiscal.this_year, L = d.fiscal.last_year;
+    $("q").value = d.company;
+    $("switches").hidden = false;
+    $("source").innerHTML = other && !card ? `${sourceLine(d)}<br>${sourceLine(other)}` : sourceLine(d);
+    $("ask").hidden = !!card; $("overview").hidden = !!card; $("detail").hidden = !card;
+    if (card) return drawCard(d, card);
+
+    $("key").hidden = false; $("form2").hidden = false; $("q2").value = "";
+    $("grid").hidden = !!other; $("compare").hidden = !other; $("stop").hidden = !other;
+    $("vslabel").textContent = other ? "Compare with someone else" : "Compare with";
+    if (other) return drawCompare(d, other);
+
+    document.title = `${d.ticker} · Signal Cards`;
+    $("company").textContent = d.company;
+    $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
+    $("grid").innerHTML = d.cards.map((c, i) => tile(d, i + 1)).join("");
+    justFlipped = 0;
+    drawScore(d);
+  }
+
+  // Two companies side by side, signal by signal.
+  function drawCompare(a, b) {
+    document.title = `${a.ticker} vs ${b.ticker} · Signal Cards`;
+    $("company").textContent = `${a.company} vs ${b.company}`;
+    $("meta").textContent = "Same eight signals, side by side. Growth rates compare fairly, whatever the size.";
+    $("score").hidden = true;
+    const head = d => `<div><b>${esc(d.company)}</b><span>${esc(d.ticker)} · ${esc(d.fiscal.this_year.fy)} vs ${esc(d.fiscal.last_year.fy)} · year ended ${esc(day(d.fiscal.this_year.end))}</span></div>`;
+    const notes = [];
+    if (a.rules !== b.rules) notes.push(`<p class="banner"><b>Not comparable.</b> ${esc(a.company)} follows ${esc(a.rules)} and ${esc(b.company)} follows ${esc(b.rules)}. Different rules measure the same thing differently, so read each side on its own.</p>`);
+    if (a.fiscal.this_year.end !== b.fiscal.this_year.end) notes.push(`<p class="banner">Their years end on different dates: ${esc(day(a.fiscal.this_year.end))} and ${esc(day(b.fiscal.this_year.end))}. The two sides cover different twelve months.</p>`);
+    $("compare").innerHTML = `${notes.join("")}
+      <div class="cmp-head">${head(a)}${head(b)}</div>
+      ${a.cards.map((c, i) => `<h3>${esc(W(c, "signal"))}</h3><div class="cmp-two">${tile(a, i + 1)}${tile(b, i + 1)}</div>`).join("")}`;
+    justFlipped = 0;
+  }
+
+  // The score line above the tiles.
+  function drawScore(d) {
+    const g = guesses(d), playable = d.cards.map((c, i) => i + 1).filter(n => canGuess(d.cards[n - 1]));
+    const left = playable.filter(n => !g[n]).length;
+    const tried = playable.filter(n => g[n] && g[n] !== "skip");
+    const caught = tried.filter(n => g[n] === d.cards[n - 1].tone).length;
+    $("score").hidden = !playable.length;
+    const tally = tried.length ? `<b>${caught} of ${tried.length} caught.</b>` : "";
+    const cheer = caught === tried.length ? "Clean sweep." : caught * 2 >= tried.length ? "Not bad." : "The exam is tomorrow. Keep reading.";
+    $("score").innerHTML = left
+      ? `<span>Catch the flag: guess each label before you flip it.</span> ${tally} <span class="muted">${left} to go</span> <button class="ghost" type="button" id="reveal">Reveal all</button>`
+      : `${tally} <span>${tried.length ? cheer : "All flipped."}</span> <button class="ghost" type="button" id="again">Play again</button>`;
+  }
+
+  function drawCard(d, n) {
+    const c = d.cards[n - 1], T = d.fiscal.this_year, L = d.fiscal.last_year;
+    const prev = d.cards[n - 2], next = d.cards[n];
+    document.title = `${c.signal} · ${d.ticker} · Signal Cards`;
+    const rows = c.rows.map(r => `
+      <tr>
+        <td>${esc(W(r, "item"))}</td>
+        <td class="num">${esc(r.this_year)}</td>
+        <td class="num">${esc(r.last_year)}</td>
+        <td class="f">${r.formula.map(esc).join("<br>")}</td>
+        <td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
+      </tr>`).join("");
+    // The trend table: the last column is a label, the rest are numbers.
+    const trend = c.trend ? `
+      <div class="proof">
+        <h2>The last ${c.trend.rows.length} years</h2>
+        <div class="scroll"><table>
+          <tr>${W(c.trend, "columns").map((h, i, all) => `<th${i > 0 && i < all.length - 1 ? ' class="num"' : ""}>${esc(h)}</th>`).join("")}</tr>
+          ${c.trend.rows.map(r => `<tr>${r.map((v, i) => i === 0 ? `<td>${esc(v)}</td>` : i === r.length - 1 ? `<td class="lab">${mark(TONE[v])}${esc(v)}</td>` : `<td class="num">${esc(v)}</td>`).join("")}</tr>`).join("")}
+        </table></div>
+        <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>
+      </div>` : "";
+    const down = faceDown(d, n), said = guesses(d)[n], checked = !!checks(d)[n];
+    const verdict = !canGuess(c) || !said || said === "skip" ? "" : said === c.tone ? "You caught it." : `You said ${TONES[said]}. Missed this one.`;
+    const steps = `
+      <div class="steps">
+        ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(W(prev, "signal"))}</button>` : ""}
+        ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(W(next, "signal"))} →</button>` : ""}
+      </div>`;
+    const top = `
+      <div class="nav">
+        <button class="ghost" type="button" data-card="0">${where().vs ? "← Back to compare" : "← All eight"}</button>
+        <span class="muted">${n} of 8</span>
+      </div>`;
+    const numbers = `
+        <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
+        <p class="big">${esc(c.big)}</p>
+        <p class="under">${esc(c.small)}</p>`;
+    if (down) { // face down: the two numbers and the question, nothing that gives the answer away
+      $("detail").innerHTML = `${top}
+      <div class="hero">${numbers}
+        <p class="ask-flag">Good, watch or warning?</p>
+        <div class="guess">${Object.entries(TONES).map(([t, word]) => `<button type="button" data-guess="${t}">${mark(t)}${word}</button>`).join("")}</div>
+        <p class="what">${esc(c.what)}</p>
+      </div>${steps}`;
+      return;
+    }
+    $("detail").innerHTML = `${top}
+      <div class="hero">${numbers}
+        <div class="reveal${n === justFlipped ? " flipped" : ""}">
+          <p class="verdict">${esc(verdict)}</p>
+          <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
+          <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
+          ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
+        </div>
+        <p class="what">${esc(c.what)}</p>
+      </div>
+      ${c.rows.length ? `
+      <hr class="hair">
+      <div class="proof">
+        <h2>The numbers</h2>
+        <div class="scroll"><table>
+          <tr><th>Item</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th><th>Source</th></tr>
+          ${rows}
+        </table></div>
+        <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
+        <p class="note muted">A label is a first screen, not a verdict.</p>
+      </div>${trend}` : ""}${steps}`;
+    justFlipped = 0;
+  }
+
+  // ---------- Search: type a name or a ticker, pick from the list ----------
+  // Used twice: the main box, and the "Compare with" box.
+  async function find(text) {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    return d.results;
+  }
+  function searchBox(input, list, form, onPick, onMiss) {
+    let hits = [], picked = -1, asked = 0, timer;
+    const close = () => { hits = []; picked = -1; list.hidden = true; input.setAttribute("aria-expanded", "false"); };
+    const paint = () => {
+      list.hidden = !hits.length; input.setAttribute("aria-expanded", String(!!hits.length));
+      list.innerHTML = hits.map((h, i) => `<li role="option" id="${list.id}-${i}" data-i="${i}" aria-selected="${i === picked}"><span class="n">${esc(h.name)}</span><span class="t">${esc(h.ticker)}</span></li>`).join("");
+      if (picked >= 0) input.setAttribute("aria-activedescendant", `${list.id}-${picked}`); else input.removeAttribute("aria-activedescendant");
+    };
+    const choose = h => { close(); input.blur(); onPick(h.ticker); };
+    input.addEventListener("input", () => {
+      clearTimeout(timer);
+      const text = input.value.trim(), mine = ++asked;
+      if (!text) return close();
+      timer = setTimeout(async () => {
+        try { const found = await find(text); if (mine === asked) { hits = found; picked = -1; paint(); } } catch { if (mine === asked) close(); }
+      }, 140);
+    });
+    input.addEventListener("keydown", e => {
+      if (e.key === "Escape") return close();
+      if (!hits.length || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+      e.preventDefault();
+      picked = (picked + (e.key === "ArrowDown" ? 1 : -1) + hits.length + (picked < 0 && e.key === "ArrowUp" ? 1 : 0)) % hits.length;
+      paint();
+    });
+    input.addEventListener("focus", () => input.select());
+    input.addEventListener("blur", () => setTimeout(close, 150));
+    list.addEventListener("mousedown", e => { const li = e.target.closest("li"); if (li) { e.preventDefault(); choose(hits[Number(li.dataset.i)]); } });
+    form.addEventListener("submit", async e => {
+      e.preventDefault();
+      clearTimeout(timer); asked++;
+      const text = input.value.trim();
+      if (!text) return;
+      if (picked >= 0 && hits[picked]) return choose(hits[picked]);
+      close();
+      try {
+        const found = await find(text);               // best match first: an exact ticker wins
+        if (found.length) choose(found[0]); else onMiss(text);
+      } catch (err) { fail("Nothing to read.", err.message || "Something went wrong. Is the server still running in the Terminal?"); }
+    });
+  }
+  const noMatch = text => `No US-listed company matches "${text}". Check the spelling, or try its ticker.`;
+  searchBox($("q"), $("hits"), $("form"), t => go(t),
+    text => { history.pushState(null, "", "./"); $("ask").classList.remove("small"); fail("Nothing to read.", noMatch(text)); });
+  searchBox($("q2"), $("hits2"), $("form2"), t => { if (data && t !== data.ticker) go(data.ticker, 0, t); },
+    text => { $("q2").value = ""; $("q2").placeholder = "no match, try again"; });
+  $("stop").addEventListener("click", () => data && go(data.ticker, 0, ""));
+
+  // ---------- Clicks and keys ----------
+  $("home").addEventListener("click", e => { e.preventDefault(); go(""); $("q").focus(); });
+  document.addEventListener("click", e => {
+    const t = e.target.closest("[data-try]");
+    if (t) return go(t.dataset.try);
+    if (!data) return;
+    const { card } = where();
+    const guess = e.target.closest("[data-guess]");
+    if (guess && card) { // a guess on a card screen: remember it and flip
+      store.set(keyFor("guess", data), { ...guesses(data), [card]: guess.dataset.guess });
+      justFlipped = card; return render();
+    }
+    if (e.target.closest("#reveal")) { // flip everything that is still face down, without scoring it
+      const g = { ...guesses(data) };
+      data.cards.forEach((c, i) => { if (canGuess(c) && !g[i + 1]) g[i + 1] = "skip"; });
+      store.set(keyFor("guess", data), g); return render();
+    }
+    if (e.target.closest("#again")) { store.set(keyFor("guess", data), {}); return render(); }
+    const b = e.target.closest("[data-card]");
+    if (!b) return;
+    const owner = b.dataset.ticker || data.ticker; // in a comparison, a tile may belong to the other company
+    go(owner, Number(b.dataset.card), owner !== data.ticker ? data.ticker : undefined);
+  });
+  document.addEventListener("click", e => {
+    const b = e.target.closest("[data-pref]");
+    if (!b) return;
+    prefs[b.dataset.pref] = b.dataset.val;
+    store.set("sc:prefs", prefs); paintPrefs(); render();
+  });
+  document.addEventListener("change", e => {
+    if (e.target.id !== "checked" || !data) return;
+    const { card } = where();
+    store.set(keyFor("checked", data), { ...checks(data), [card]: e.target.checked });
+    render();
+  });
+  document.addEventListener("keydown", e => {
+    const { ticker, card } = where();
+    if (!card || !data || e.target.matches("input")) return;
+    if (e.key === "Escape") go(ticker);
+    if (e.key === "ArrowLeft" && card > 1) go(ticker, card - 1);
+    if (e.key === "ArrowRight" && card < 8) go(ticker, card + 1);
+  });
+  addEventListener("popstate", render);
+  render();
+</script>
+</body>
+</html>
