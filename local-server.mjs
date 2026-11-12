@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const STATIC = {
   "/icon.svg": "image/svg+xml", "/apple-touch-icon.png": "image/png", "/icon-192.png": "image/png",
   "/icon-512.png": "image/png", "/og.png": "image/png", "/manifest.webmanifest": "application/manifest+json",
+  "/sw.js": "text/javascript",
 };
 const json = (res, status, body) => { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(body)); };
 

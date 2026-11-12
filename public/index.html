@@ -111,7 +111,7 @@
   .fold-body table { margin-top: 0; }
   table.rules tr.hit td { font-weight: 600; background: var(--surface); }
   table.rules td, table.rules th { padding-left: 10px; }
-  .thisone { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; background: var(--text); color: var(--bg); }
+  .thisone { display: inline-block; margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; background: var(--text); color: var(--bg); }
   /* Progress dots at the top of a card */
   .dots { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; margin: 0 0 2px; }
   .dot { position: relative; width: 22px; height: 30px; padding: 0; border: 0; background: none; cursor: pointer; }
@@ -200,7 +200,7 @@
   }
   .t-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
   .badge { font-size: 12px; color: var(--muted); white-space: nowrap; }
-  .t-result { font-size: 12px; color: var(--muted); margin-top: 3px; min-height: 1.3em; }
+  .t-result { font-size: 13px; color: var(--muted); margin-top: 3px; min-height: 1.3em; }
   .tile.down { outline: 1px dashed color-mix(in srgb, var(--text) 28%, transparent); outline-offset: -1px; background: none; }
   .tile.down .t-label { color: var(--muted); font-weight: 500; }
 
@@ -276,7 +276,7 @@
   .steps { display: flex; justify-content: space-between; gap: 16px; padding: 44px 0 0; font-size: 15px; }
   .steps button { background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
   .steps button:last-child { text-align: right; margin-left: auto; }
-  .steps small { display: block; color: var(--muted); font-size: 12px; }
+  .steps small { display: block; color: var(--muted); font-size: 13px; }
 
   /* The two switches */
   /* The settings panel drops down from the button in the top bar */
@@ -329,12 +329,28 @@
   .cmp-cell:hover { background: var(--surface); }
   .cmp-cell .c-big { font-size: 22px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   .cmp-cell .c-label { font-size: 14px; font-weight: 600; white-space: nowrap; }
-  .cmp-cell .c-small { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+  .cmp-cell .c-small { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
   .cmp-cell.down .c-label, .cmp-cell.none .c-label { color: var(--muted); font-weight: 500; }
   .cmp-cell.none { display: block; }
   @media (max-width: 420px) { .cmp-cell { grid-template-columns: 1fr; } .cmp-cell .c-big { font-size: 20px; } }
   .quiet.center { text-align: center; margin-top: 22px; }
   .quiet.center b { font-weight: 600; color: var(--text); }
+  .skip { position: absolute; left: 12px; top: -60px; z-index: 20; padding: 10px 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; text-decoration: none; }
+  .skip:focus { top: 12px; }
+  main:focus { outline: none; }
+  .keys { font-size: 13px; margin: 12px 0 0; }
+  @media (hover: none) { .keys { display: none; } }
+  .cp-best { font-size: 15px; margin: 6px 0 0; }
+  .offline { font-size: 14px; color: var(--muted); margin: 18px 0 0; }
+  .ask.small .offline { display: none; }
+  /* Fingers need room: links and small buttons get a taller tap area on touch screens */
+  @media (pointer: coarse) {
+    a.chk { display: inline-block; padding: 9px 3px; margin: -9px -3px; }
+    td.src a, .tick a, #source a { display: inline-block; padding: 8px 0; margin: -8px 0; }
+    .dot { height: 44px; }
+    .linkish { padding: 11px 0; }
+    .ghost { min-height: 44px; }
+  }
   .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .banner { text-align: center; font-size: 15px; padding: 14px 18px; border-radius: 16px; background: var(--surface); margin: 0 0 18px; }
   .banner b { font-weight: 600; }
@@ -358,7 +374,7 @@
               -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
     .tabbar[hidden] { display: none; }
     .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: min(76px, 21vw); min-height: 50px;
-           background: none; border: 0; padding: 2px 8px; font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer; }
+           background: none; border: 0; padding: 2px 8px; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; }
     .tab svg { width: 26px; height: 26px; color: var(--text); transition: transform .12s ease; }
     .tab:active svg { transform: scale(.86); }
     .tab.bounce svg { animation: bounce .34s ease; }
@@ -389,6 +405,7 @@
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Skip to the content</a>
 <div class="wrap">
   <div class="bar">
     <a class="brand" href="./" id="home" aria-label="Signal Cards, home"><span class="w1">Signal</span> <span class="w2">Cards</span></a>
@@ -432,7 +449,8 @@
     </div>
   </div>
 
-  <main>
+  <main id="main" tabindex="-1">
+    <p class="sr" id="say" aria-live="polite"></p>
     <section class="ask" id="ask">
       <p class="motto" id="motto">Money talks. Learn to listen.</p>
       <p class="lede">Type a company. Read its annual report, one card at a time.</p>
@@ -444,6 +462,7 @@
         </div>
         <button class="go">Read</button>
       </form>
+      <p class="offline" id="offline" hidden>You are offline. Companies you have already read still open.</p>
       <p class="tries" id="recent" hidden></p>
       <p class="tries" id="tryrow"><span id="trylabel">Try</span>
         <span id="picks">
@@ -634,7 +653,7 @@
   // ---------- Recently read: the last few companies you opened, on the home screen ----------
   const recents = () => { try { const r = JSON.parse(localStorage.getItem("sc:recent")); return Array.isArray(r) ? r.filter(c => c && c.ticker && c.label) : []; } catch { return []; } };
   const remember = d => {
-    const list = [{ ticker: d.ticker, label: shortName(d.company) }, ...recents().filter(c => c.ticker !== d.ticker)].slice(0, 6);
+    const list = [{ ticker: d.ticker, label: shortName(d.company), end: d.fiscal.this_year.end }, ...recents().filter(c => c.ticker !== d.ticker)].slice(0, 6);
     try { localStorage.setItem("sc:recent", JSON.stringify(list)); } catch {}
   };
   // Once you have read a company, "Recent" stands where the suggestions were; one link brings them back.
@@ -642,7 +661,8 @@
   const paintRecent = () => {
     const list = recents().slice(0, 4);
     $("recent").hidden = !list.length;
-    $("recent").innerHTML = list.length ? `Recent ${list.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}${wantNew ? "" : ` <button class="linkish" type="button" id="newones">Something new</button>`}` : "";
+    $("recent").innerHTML = list.length ? `Recent ${list.map(c => { let b = {}; try { b = (c.end && JSON.parse(localStorage.getItem(`sc:best:${c.ticker}:${c.end}`))) || {}; } catch {}
+      return `<button class="chip" type="button" data-try="${esc(c.ticker)}"${b.of ? ` aria-label="${esc(c.label)}, best score ${b.caught} of ${b.of}"` : ""}>${esc(c.label)}${b.of ? `<span class="when">${b.caught}/${b.of}</span>` : ""}</button>`; }).join(" ")}${wantNew ? "" : ` <button class="linkish" type="button" id="newones">Something new</button>`}` : "";
     $("tryrow").hidden = !!list.length && !wantNew;
   };
   $("recent").addEventListener("click", e => { if (e.target.closest("#newones")) { wantNew = true; paintRecent(); } });
@@ -666,6 +686,20 @@
   const guesses = d => { const g = sitting.get(keyFor("guess", d)); return g._day === today() ? g : {}; }; // { "3": "warn" }, or "skip" if revealed without guessing
   const setGuesses = (d, g) => sitting.set(keyFor("guess", d), { ...g, _day: today() });
   try { Object.keys(localStorage).filter(k => k.startsWith("sc:guess:")).forEach(k => localStorage.removeItem(k)); } catch {} // guesses from before this change
+  // The lasting record: your best first-try score for each company and year. Kept in this browser.
+  // A sitting counts once every card is flipped. Cards you retried after seeing the answer do not count.
+  const tally = d => {
+    const g = guesses(d), playable = d.cards.map((c, i) => i + 1).filter(n => canGuess(d.cards[n - 1]));
+    const tried = playable.filter(n => g[n] && g[n] !== "skip");
+    return { g, playable, left: playable.filter(n => !g[n]).length, tried, missed: tried.filter(n => g[n] !== d.cards[n - 1].tone),
+             caught: tried.filter(n => g[n] === d.cards[n - 1].tone).length };
+  };
+  const best = d => {
+    const k = keyFor("best", d), t = tally(d); let b = store.get(k);
+    const better = !b.of || t.caught / t.tried.length > b.caught / b.of || (t.caught / t.tried.length === b.caught / b.of && t.tried.length > b.of);
+    if (!t.left && t.tried.length && !t.g._retry && better) { b = { caught: t.caught, of: t.tried.length, day: today() }; store.set(k, b); }
+    return b.of ? b : null;
+  };
   const checks = d => store.get(keyFor("checked", d));  // { "3": true }
   const TONES = { good: "Good", watch: "Watch", warn: "Warning" };
   const canGuess = c => !!c.tone;                        // cards with no label have nothing to guess
@@ -754,19 +788,23 @@
   let cmpOpen = false; // whether the "Compare with" box is showing
   async function load(ticker) {
     if (loaded[ticker]) return loaded[ticker];
-    const r = await fetch(`/api/cards?ticker=${encodeURIComponent(ticker)}`);
+    let r;
+    try { r = await fetch(`/api/cards?ticker=${encodeURIComponent(ticker)}`); }
+    catch { throw new Error(navigator.onLine === false ? "You are offline, and this company has not been saved on this device yet. Companies you have already read still open." : "Could not reach the server. Check your connection and try again."); }
     const d = await r.json();
     if (!r.ok) throw new Error(d.error);
+    d.saved = r.headers.get("X-Saved-Copy") === "1"; // the network failed; this is the copy kept from last time
     // If the site has been updated since this page was opened, the data is newer than the page
     // understands (more cards, new fields). Reload once to get the matching page.
-    if (d.version > PAGE_VERSION) {
+    if (d.version > PAGE_VERSION && !d.saved) {
       let already = false;
       try { already = sessionStorage.getItem("sc:reloaded") === String(d.version); sessionStorage.setItem("sc:reloaded", String(d.version)); } catch { already = true; }
       if (!already) { location.reload(); await new Promise(() => {}); } // stop here; the reload takes over
     }
+    if (d.saved) return d;   // not kept in memory, so the fresh copy is fetched as soon as the network is back
     return loaded[d.ticker] = loaded[ticker] = d;
   }
-  const sourceLine = d => `${esc(d.company)}: ${esc(d.unit)}, as printed in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(day(d.filing.filed))}</a>. Pulled from the SEC on ${esc(day(d.fetched_at))}.`;
+  const sourceLine = d => `${esc(d.company)}: ${esc(d.unit)}, as printed in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(day(d.filing.filed))}</a>. Pulled from the SEC on ${esc(day(d.fetched_at))}.${d.saved ? " <b>Offline: this is the copy saved on this device.</b>" : ""}`;
 
   // One tile. Face down it shows only the two numbers.
   function tile(d, n) {
@@ -872,16 +910,14 @@
 
   // The score line above the tiles.
   function drawScore(d) {
-    const g = guesses(d), playable = d.cards.map((c, i) => i + 1).filter(n => canGuess(d.cards[n - 1]));
-    const left = playable.filter(n => !g[n]).length;
-    const tried = playable.filter(n => g[n] && g[n] !== "skip");
-    const caught = tried.filter(n => g[n] === d.cards[n - 1].tone).length;
+    const { playable, left, tried, caught, missed } = tally(d), b = best(d);
     $("score").hidden = !playable.length;
-    const tally = tried.length ? `<b>${caught} of ${tried.length} caught.</b>` : "";
+    const tallyLine = tried.length ? `<b>${caught} of ${tried.length} caught.</b>` : "";
+    const bestLine = b ? `<span class="muted">Best: ${b.caught} of ${b.of}</span>` : "";
     const cheer = caught === tried.length ? "Clean sweep." : caught * 2 >= tried.length ? "Not bad." : "The exam is tomorrow. Keep reading.";
     $("score").innerHTML = left
-      ? `<span>Guess each label.</span> ${tally} <span class="muted">${left} to go</span> <button class="ghost" type="button" id="reveal">Reveal all</button>`
-      : `${tally} <span>${tried.length ? cheer : "All flipped."}</span> <button class="ghost" type="button" id="again">Play again</button>`;
+      ? `<span>Guess each label.</span> ${tallyLine} <span class="muted">${left} to go</span> ${bestLine} <button class="ghost" type="button" id="reveal">Reveal all</button>`
+      : `${tallyLine} <span>${tried.length ? cheer : "All flipped."}</span> ${bestLine} ${missed.length ? `<button class="ghost" type="button" id="retry">Retry the ${missed.length === 1 ? "one" : missed.length} you missed</button>` : ""} <button class="ghost" type="button" id="again">Play again</button>`;
     // When every card is flipped, offer the next move: three other companies to read.
     const others = left ? [] : pool.filter(c => c.ticker !== d.ticker).sort(() => Math.random() - .5).slice(0, 3);
     $("after").hidden = !others.length;
@@ -904,7 +940,7 @@
       : left ? `${left} still face down. You can go back and guess them.` : nums.length ? "All revealed." : "";
     // What the revealed cards said, by mark. Face-down cards are left out so nothing is given away.
     const shown = nums.filter(k => g[k]).map(k => d.cards[k - 1].tone);
-    const tally = Object.entries(TONES).map(([t, word]) => [t, word, shown.filter(x => x === t).length]).filter(x => x[2])
+    const marks = Object.entries(TONES).map(([t, word]) => [t, word, shown.filter(x => x === t).length]).filter(x => x[2])
       .map(([t, word, count]) => `<span>${mark(t)}${count} ${word.toLowerCase()}</span>`).join("");
     document.title = `${end ? "Finished" : done.deck} · ${d.ticker} · Signal Cards`;
     $("tabprev").disabled = false; $("tabnext").disabled = end;
@@ -913,16 +949,19 @@
     // On the end screen: three other companies to read next.
     const others = end ? pool.filter(c => c.ticker !== d.ticker).sort(() => Math.random() - .5).slice(0, 3) : [];
     $("detail").innerHTML = `
+      <h1 class="sr">${end ? "Finished" : `${esc(done.deck)}, done`}: ${esc(d.company)}</h1>
       <div class="nav"><span class="muted">${end ? "Finished" : `${esc(done.deck)} · done`}</span></div>
       <div class="hero checkpoint">
         <p class="kicker">${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
         <p class="cp-title">${end ? "That's every card." : `That's ${esc(done.deck.charAt(0).toLowerCase() + done.deck.slice(1))}.`}</p>
         ${score ? `<p class="cp-score">${esc(score)}</p>` : ""}
-        ${tally ? `<p class="cp-tally">${tally}</p>` : ""}
+        ${end && best(d) ? `<p class="cp-best muted">Your best on this report: ${best(d).caught} of ${best(d).of}.</p>` : ""}
+        ${marks ? `<p class="cp-tally">${marks}</p>` : ""}
         ${end ? (others.length ? `<p class="cp-next"><small>Read another</small></p><p class="tries cp-tries">${others.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}</p>` : "")
               : `<p class="cp-next"><small>Next</small>${esc(next.deck)}. ${esc(DECK_BLURB[next.deck] ?? "")}</p>`}
         <div class="cp-actions">
           ${end ? "" : `<button class="go" type="button" data-forward>Go on to ${esc(next.deck)} →</button>`}
+          ${end && tally(d).missed.length ? `<button class="pill" type="button" id="retry">Retry the ${tally(d).missed.length === 1 ? "one" : tally(d).missed.length} you missed</button>` : ""}
           <button class="${end ? "go" : "pill"}" type="button" data-card="0">Back to all cards</button>
         </div>
       </div>`;
@@ -990,9 +1029,10 @@
       const cc = d.cards[k - 1], look = k === n ? " here" : "";
       const state = !canGuess(cc) ? "none" : faceDown(d, k) ? "down" : cc.tone;
       const gap = i && cc.deck !== d.cards[steppable[i - 1] - 1].deck ? '<i class="dotgap"></i>' : "";
-      return `${gap}<button class="dot ${state}${look}" type="button" data-card="${k}" aria-label="${esc(W(cc, "signal"))}"${k === n ? ' aria-current="true"' : ""}></button>`;
+      return `${gap}<button class="dot ${state}${look}" type="button" data-card="${k}" aria-label="${esc(W(cc, "signal"))}${state === "down" ? ", not guessed yet" : TONES[state] ? `, ${TONES[state]}` : ""}"${k === n ? ' aria-current="true"' : ""}></button>`;
     }).join("");
     const top = `
+      <h1 class="sr">${esc(W(c, "signal"))}: ${esc(d.company)}, ${esc(T.fy)} against ${esc(L.fy)}</h1>
       <div class="nav">
         ${place >= 0 ? `<div class="dots" role="group" aria-label="Cards">${dots}</div>` : ""}
         <span class="muted">${esc(c.deck ?? "")}${place >= 0 ? ` · ${place + 1} of ${steppable.length}` : ""}</span>
@@ -1009,8 +1049,9 @@
     if (down) { // face down: the two numbers and the question, nothing that gives the answer away
       $("detail").innerHTML = `${top}
       <div class="hero">${numbers}
-        <p class="ask-flag">Good, watch or warning?</p>
-        <div class="guess">${Object.entries(TONES).map(([t, word]) => `<button type="button" data-guess="${t}">${mark(t)}${word}</button>`).join("")}</div>
+        <h2 class="ask-flag">Good, watch or warning?</h2>
+        <div class="guess" role="group" aria-label="Your guess">${Object.entries(TONES).map(([t, word]) => `<button type="button" data-guess="${t}">${mark(t)}${word}</button>`).join("")}</div>
+        <p class="keys muted">Or press 1, 2 or 3.</p>
         <p class="what">${esc(c.what)}</p>
       </div>${place >= 0 ? steps : ""}`;
       return;
@@ -1038,6 +1079,8 @@
         <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
         <p class="note muted">${c.rows.some(r => r.this_link) ? `${TAP} a number to open the filing at that number, highlighted.` : ""}</p>`)}${ratios}${trend}${rule}
       </div>` : ""}${place >= 0 ? steps : ""}`;
+    // Say the answer out loud for screen readers, once, right after a guess.
+    if (n === justFlipped) $("say").textContent = `${verdict} ${c.label ? c.label.name : c.state}. ${c.label ? (plain() ? c.label.plain : c.label.reason) : c.note}`;
     justFlipped = 0;
   }
 
@@ -1149,6 +1192,12 @@
       setGuesses(data, g); return render();
     }
     if (e.target.closest("#again")) { setGuesses(data, {}); return render(); }
+    if (e.target.closest("#retry")) { // turn only the missed cards face down again, and open the first of them
+      best(data);                     // bank the first-try score before anything changes
+      const t = tally(data), g = { ...t.g, _retry: true };
+      t.missed.forEach(n => delete g[n]);
+      setGuesses(data, g); return go(data.ticker, t.missed[0]);
+    }
     if (e.target.closest("[data-forward]")) return forward(); // a Next button on a card or a checkpoint
     const b = e.target.closest("[data-card]");
     if (!b) return;
@@ -1180,6 +1229,8 @@
     if (e.key === "Escape") go(ticker);
     if (e.key === "ArrowLeft") back();
     if (e.key === "ArrowRight") forward();
+    const pick = document.querySelectorAll("#detail [data-guess]")[Number(e.key) - 1]; // 1, 2, 3: Good, Watch, Warning
+    if (pick && !e.metaKey && !e.ctrlKey && !e.altKey) pick.click();
   });
   // Swipe left or right on a card to go to the next or previous one. Tables that scroll sideways are left alone.
   let sx = 0, sy = 0, swiping = false;
@@ -1203,6 +1254,10 @@
   }, { passive: true });
   addEventListener("popstate", render);
   render();
+  // Offline use: sw.js keeps the page and the companies you have read. The network always comes first.
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
+  const paintOffline = () => { $("offline").hidden = navigator.onLine !== false; };
+  addEventListener("online", paintOffline); addEventListener("offline", paintOffline); paintOffline();
 </script>
 </body>
 </html>
