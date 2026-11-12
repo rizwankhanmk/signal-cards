@@ -18,6 +18,15 @@ How it works:
 - Numbers show in USD millions when every figure is a whole million, otherwise in USD thousands, to match the 10-K.
 - Only companies that file a 10-K are covered. Foreign companies listed in the US file a different form.
 
+## Look and voice
+
+- Calm layout: one idea per screen, one big number, lots of white space. Greys `#1d1d1f`, `#6e6e73`, `#f5f5f7`. Inter font.
+- Light and dark: follows your computer's setting; the button in the top corner overrides it.
+- Type a ticker, see the company and fiscal year, then eight tiles. Tap a tile to open that card on its own screen.
+  Arrow keys move between cards, Esc goes back to the eight.
+- Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
+  The lines live next to the label rules in `signals.mjs`.
+
 ## Label rules
 
 A label is a first screen, not a verdict. "Points" means percentage points.

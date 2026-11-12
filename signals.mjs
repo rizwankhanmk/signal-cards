@@ -39,7 +39,7 @@ const round1 = x => Math.round(x * 10) / 10;
 const one = x => x.toFixed(1);                       // always one decimal: 11.0, not 11
 const pct = x => `${one(Math.abs(x))}%`;             // size only; the words say rose or fell
 const signed = x => `${x > 0 ? "+" : x < 0 ? "−" : ""}${one(Math.abs(x))}`;
-const cap = w => w[0].toUpperCase() + w.slice(1);
+const signedPct = x => `${signed(x)}%`;
 const fyLabel = end => `FY${end.slice(0, 4)}`;
 
 function annualRows(gaap, tag, instant) {
@@ -60,59 +60,85 @@ function annualRows(gaap, tag, instant) {
 
 // ---------- 3. Labels ----------
 // A label is a first screen, not a verdict. Flat (exactly 0.0%) counts as "up" for sales.
+// The voice: short sentences, the numbers first, then one blunt line. Facts only, never advice.
+const up = x => `up ${pct(x)}`, down = x => `down ${pct(x)}`;
 
 // Inventory, Receivables, SG&A (and later Labour force): is the item growing faster or slower than sales?
-const ABOUT_SAME_PP = 5; // "about the same rate" means within this many percentage points
+const ABOUT_SAME_PP = 5;  // "about the same rate" means within this many percentage points
+const BIG_GAP_PP = 10;    // a Warning gets the stronger line when the item outruns sales by more than this
 function paceLabel(s, i, w) {
   const gap = round1(i - s); // positive = item grew faster than sales
   if (s >= 0) {
-    if (i <= 0) return { name: "Most favourable", reason: `Sales rose ${pct(s)}, ${w.noun} ${i < 0 ? "fell " + pct(i) : "stayed flat"}.` };
-    if (i < s) return { name: "Good", reason: `Both rose, but ${w.noun} (${pct(i)}) grew slower than sales (${pct(s)}).` };
-    return { name: "Warning", reason: `${w.Noun} grew ${pct(i)}, sales grew ${pct(s)}. ${w.warn} ${gap > 0 ? one(gap) + " percentage points faster than" : "as fast as"} ${w.warnEnd}.` };
+    if (i <= 0) return { name: "Most favourable", reason: `Sales ${up(s)}. ${w.Noun} ${i < 0 ? down(i) : "flat"}. ${w.best}` };
+    if (i < s) return { name: "Good", reason: `Sales ${up(s)}. ${w.Noun} ${up(i)}. ${w.good}` };
+    return { name: "Warning", reason: `Sales grew ${pct(s)}. ${w.Noun} grew ${pct(i)}. ${gap > BIG_GAP_PP ? w.warnBig : w.warn}` };
   }
-  if (i >= 0) return { name: "Risk rising", reason: `Sales fell ${pct(s)} while ${w.noun} ${i > 0 ? "rose " + pct(i) : "did not fall"}.` };
-  if (Math.abs(gap) <= ABOUT_SAME_PP) return { name: "Neutral / watch", reason: `Both fell at about the same rate: sales ${pct(s)}, ${w.noun} ${pct(i)}.` };
-  if (gap < 0) return { name: "Good", reason: `Sales fell ${pct(s)}, but ${w.noun} fell faster, ${pct(i)}.` };
-  return { name: "Warning", reason: `Sales fell ${pct(s)} but ${w.noun} only fell ${pct(i)}. It is not shrinking as fast as sales.` };
+  if (i >= 0) return { name: "Risk rising", reason: `Sales ${down(s)}. ${w.Noun} ${i > 0 ? up(i) : "flat"}. ${w.risk}` };
+  if (Math.abs(gap) <= ABOUT_SAME_PP) return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${w.Noun} ${down(i)}. Shrinking in step. Nothing to see. Yet.` };
+  if (gap < 0) return { name: "Good", reason: `Sales ${down(s)}. ${w.Noun} ${down(i)}. ${w.cutFast}` };
+  return { name: "Warning", reason: `Sales ${down(s)}. ${w.Noun} down only ${pct(i)}. ${w.cutSlow}` };
 }
 const WORDS = {
-  inventory:   { noun: "inventory",   Noun: "Inventory",   warn: "Stock is piling up",        warnEnd: "it sells" },
-  receivables: { noun: "receivables", Noun: "Receivables", warn: "Unpaid customer bills grew", warnEnd: "sales" },
-  sga:         { noun: "SG&A",        Noun: "SG&A",        warn: "Overheads grew",            warnEnd: "sales" },
+  inventory: { Noun: "Inventory",
+    best: "Selling more with less on the shelf. Beautiful.",
+    good: "They're selling it faster than they're stacking it. That's how it should work.",
+    warn: "The shelves are filling a little faster than they empty.",
+    warnBig: "That's not a rounding error. That's a pile.",
+    risk: "Less going out, more piling in. Wrong direction.",
+    cutFast: "They cut stock faster than sales fell. Somebody's paying attention.",
+    cutSlow: "The business is shrinking faster than the stockroom." },
+  receivables: { Noun: "Receivables",
+    best: "More sales, fewer unpaid bills. Customers are paying up.",
+    good: "Sales are outrunning the unpaid bills. That's how it should work.",
+    warn: "The IOUs are growing a bit faster than the sales.",
+    warnBig: "The IOUs are growing much faster than the sales. Who hasn't paid?",
+    risk: "Fewer sales, more unpaid bills. Wrong direction.",
+    cutFast: "Unpaid bills fell faster than sales. Somebody's collecting.",
+    cutSlow: "The business is shrinking faster than the unpaid bills." },
+  sga: { Noun: "SG&A",
+    best: "More sales, lower overheads. That almost never happens.",
+    good: "Overheads are growing slower than the business. That's the whole trick.",
+    warn: "Overheads are edging ahead of sales. Not a crisis. Not nothing.",
+    warnBig: "Overheads are outrunning the business. That's backwards.",
+    risk: "Smaller business, bigger overheads. Wrong direction.",
+    cutFast: "They cut overheads faster than sales fell. Somebody's paying attention.",
+    cutSlow: "The business is shrinking faster than its overheads." },
 };
 
 // R&D and Capital expenditure: spending more is not bad in itself.
 // The warning is for cutting investment while sales grow.
 const BIG_BET_TIMES = 2; // "a big bet" means growing more than this many times the sales rate
-function investLabel(s, i, noun) {
+function investLabel(s, i, Noun) {
   if (s >= 0) {
-    if (i < 0) return { name: "Warning", reason: `Sales rose ${pct(s)} but ${noun} was cut ${pct(i)}. Growing while spending less on the future.` };
-    if (i > BIG_BET_TIMES * s) return { name: "Neutral / watch", reason: `${cap(noun)} rose ${pct(i)}, more than double the sales rate (${pct(s)}). A big bet: check on what.` };
-    return { name: "Good", reason: `Sales rose ${pct(s)} and ${noun} ${i > 0 ? "rose " + pct(i) : "held flat"}. Investment is keeping going as the business grows.` };
+    if (i < 0) return { name: "Warning", reason: `Sales ${up(s)}. ${Noun} ${down(i)}. Growing today, spending less on tomorrow. Ask why.` };
+    if (i > BIG_BET_TIMES * s) return { name: "Neutral / watch", reason: `Sales ${up(s)}. ${Noun} ${up(i)}. That's a big bet. On what?` };
+    return { name: "Good", reason: `Sales ${up(s)}. ${Noun} ${i > 0 ? up(i) : "flat"}. The business grows. The investment keeps going. Good.` };
   }
-  return { name: "Neutral / watch", reason: `Sales fell ${pct(s)} and ${noun} ${i > 0 ? "rose " + pct(i) : i < 0 ? "fell " + pct(i) : "held flat"}. Check whether this is a planned bet or a forced cut.` };
+  if (i > 0) return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${Noun} ${up(i)}. Spending into a dip. Brave or stubborn. Find out which.` };
+  if (i < 0) return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${Noun} ${down(i)}. Planned diet or forced cut? The filing will say.` };
+  return { name: "Neutral / watch", reason: `Sales ${down(s)}. ${Noun} flat. Holding the line while sales fall. Worth a look.` };
 }
 
 // Gross profit: did the margin widen or narrow? Measured in percentage points.
 const MARGIN_STEADY_PP = 0.5;
 function marginLabel(s, change, thisM, lastM) {
-  const moved = `Gross margin went from ${one(lastM)}% to ${one(thisM)}% (${signed(change)} percentage points)`;
-  if (Math.abs(change) <= MARGIN_STEADY_PP) return { name: "Neutral / watch", reason: `${moved}. About steady.` };
+  const moved = `${one(lastM)}% to ${one(thisM)}% (${signed(change)} points)`;
+  if (Math.abs(change) <= MARGIN_STEADY_PP) return { name: "Neutral / watch", reason: `Gross margin: ${one(lastM)}% last year, ${one(thisM)}% now. Steady. Boring. Boring is fine.` };
   if (change > 0) return s >= 0
-    ? { name: "Most favourable", reason: `${moved} while sales rose ${pct(s)}.` }
-    : { name: "Good", reason: `${moved} even though sales fell ${pct(s)}.` };
+    ? { name: "Most favourable", reason: `Gross margin went from ${moved}. Sales ${up(s)} too. Selling more and keeping more of each sale. That's the dream.` }
+    : { name: "Good", reason: `Gross margin went from ${moved}, with sales ${down(s)}. Smaller, but richer per sale.` };
   return s < 0
-    ? { name: "Risk rising", reason: `${moved} and sales fell ${pct(s)}.` }
-    : { name: "Warning", reason: `${moved} even though sales rose ${pct(s)}. Each sale keeps less.` };
+    ? { name: "Risk rising", reason: `Gross margin slipped from ${moved}. Sales ${down(s)}. Fewer sales, thinner sales. Wrong direction, twice.` }
+    : { name: "Warning", reason: `Gross margin slipped from ${moved} while sales grew ${pct(s)}. Selling more. Keeping less of each sale.` };
 }
 
 // Effective tax rate: steady is good. A big drop flatters profit and may not repeat.
 const TAX_STEADY_PP = 2;
 function taxLabel(change, thisR, lastR) {
-  const moved = `The effective tax rate went from ${one(lastR)}% to ${one(thisR)}% (${signed(change)} percentage points)`;
-  if (Math.abs(change) <= TAX_STEADY_PP) return { name: "Good", reason: `${moved}. Steady.` };
-  if (change < 0) return { name: "Neutral / watch", reason: `${moved}. Profit got a lift from lower tax that may not repeat.` };
-  return { name: "Warning", reason: `${moved}. More of the profit went to tax.` };
+  const moved = `${one(lastR)}% to ${one(thisR)}% (${signed(change)} points)`;
+  if (Math.abs(change) <= TAX_STEADY_PP) return { name: "Good", reason: `Tax rate: ${one(lastR)}% last year, ${one(thisR)}% now. Steady. Nothing to see here.` };
+  if (change < 0) return { name: "Neutral / watch", reason: `Tax rate fell from ${moved}. Profit got a lift from a smaller tax bill. That kind of lift doesn't always repeat.` };
+  return { name: "Warning", reason: `Tax rate jumped from ${moved}. Either this year is high or last year was low. Find out which.` };
 }
 
 // ---------- 4. Build the cards ----------
@@ -166,12 +192,13 @@ export function buildCards(facts, cik, info = {}) {
     return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${g < 0 ? "−" : ""}${one(Math.abs(g))}%`]), growth_pct: g };
   };
   const industry = info.sicDescription ? ` (SEC industry: ${info.sicDescription})` : "";
-  const noCard = (signal, state, note) => ({ signal, state, rows: [], label: null, status: "Draft", note });
+  const noCard = (signal, state, note) => ({ signal, state, rows: [], label: null, status: "Draft", note, big: "—", small: "" });
   // A missing item is "Doesn't apply" only where we know why; otherwise it is "Not found".
   const missingCard = (signal, missing, financialNote) => financialNote && isFinancial(info.sic)
     ? noCard(signal, "Doesn't apply", `${financialNote}${industry}.`)
     : noCard(signal, "Not found", `Not found in the SEC data for these two years: ${missing.join(", ")}. The company may not report it as its own line. Missing does not mean zero.`);
-  const card = (signal, rows, label, extra = {}) => ({ signal, state: "OK", rows, label, status: "Draft", ...extra });
+  // big and small: the one number shown on the tile, and the line under it.
+  const card = (signal, rows, label, extra = {}) => ({ signal, state: "OK", rows, label, status: "Draft", big: "—", small: "", ...extra });
 
   const salesRow = growthRow(F.sales);
   const s = salesRow.growth_pct;
@@ -181,11 +208,11 @@ export function buildCards(facts, cik, info = {}) {
     if (!F[key]) return missingCard(signal, [CONCEPTS[key].name], financialNote);
     const row = growthRow(F[key]);
     if (s === null || row.growth_pct === null) return card(signal, [salesRow, row], null, { state: "No label", note: "A growth rate could not be worked out because last year's figure was zero." });
-    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s) });
+    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `sales ${signedPct(s)}` });
   }
 
   function grossProfit() {
-    if (!F.cost && !F.gross) return missingCard("Gross profit", ["Cost of sales", "Gross profit"], "Banks, insurers and other financial companies have no cost of sales, so there is no gross profit");
+    if (!F.cost && !F.gross) return missingCard("Gross profit", ["Cost of sales", "Gross profit"], "Banks and insurers have no cost of sales. No cost of sales, no gross profit");
     const [sa, sb] = [F.sales.this_year.usd, F.sales.last_year.usd];
     let ga, gb, rows;
     if (F.cost) { // gross profit = sales − cost of sales, so every step can be checked
@@ -201,7 +228,7 @@ export function buildCards(facts, cik, info = {}) {
     const change = round1(ma - mb);
     rows.push({ item: "Gross margin", statement: "Worked out here", this_year: `${one(ma)}%`, last_year: `${one(mb)}%`,
       formula: [`${fmt(ga)} ÷ ${fmt(sa)} × 100 = ${one(ma)}%`, `${fmt(gb)} ÷ ${fmt(sb)} × 100 = ${one(mb)}%`, `${one(ma)} − ${one(mb)} = ${signed(change)} percentage points`] });
-    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change });
+    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year` });
   }
 
   function taxRate() {
@@ -214,13 +241,13 @@ export function buildCards(facts, cik, info = {}) {
     const change = round1(ra - rb);
     rows.push({ item: "Effective tax rate", statement: "Worked out here", this_year: `${one(ra)}%`, last_year: `${one(rb)}%`,
       formula: [`${fmt(ta)} ÷ ${fmt(pa)} × 100 = ${one(ra)}%`, `${fmt(tb)} ÷ ${fmt(pb)} × 100 = ${one(rb)}%`, `${one(ra)} − ${one(rb)} = ${signed(change)} percentage points`] });
-    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change });
+    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year` });
   }
 
   const cards = [
-    versusSales("Inventory", "inventory", (a, b) => paceLabel(a, b, WORDS.inventory), "Banks, insurers and other financial companies do not hold stock to sell"),
-    versusSales("Accounts receivable", "receivables", (a, b) => paceLabel(a, b, WORDS.receivables), "Banks, insurers and other financial companies lend money rather than bill customers, so trade receivables are not the right measure"),
-    versusSales("Capital expenditure", "capex", (a, b) => investLabel(a, b, "capital expenditure")),
+    versusSales("Inventory", "inventory", (a, b) => paceLabel(a, b, WORDS.inventory), "Banks and insurers don't hold stock to sell. Nothing to read here"),
+    versusSales("Accounts receivable", "receivables", (a, b) => paceLabel(a, b, WORDS.receivables), "Banks and insurers lend money rather than bill customers. Trade receivables are the wrong yardstick"),
+    versusSales("Capital expenditure", "capex", (a, b) => investLabel(a, b, "Capital spending")),
     versusSales("Research and development", "rnd", (a, b) => investLabel(a, b, "R&D")),
     grossProfit(),
     versusSales("SG&A", "sga", (a, b) => paceLabel(a, b, WORDS.sga)),
