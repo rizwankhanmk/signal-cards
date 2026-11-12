@@ -235,6 +235,14 @@ test("negative amounts are written with a proper minus sign", () => {
   assert.equal(cardsOf({ sales: [1000, 1000], ocf: [-3, 2], capex: [7, 5] })["Free cash flow"].rows[0].this_year, "−3");
 });
 
+// ---------- The page and the data must agree ----------
+test("the page's PAGE_VERSION matches the data VERSION", async () => {
+  const { VERSION } = await import("../sec.mjs");
+  const { readFile } = await import("node:fs/promises");
+  const page = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.equal(Number(page.match(/const PAGE_VERSION = (\d+);/)?.[1]), VERSION);
+});
+
 // ---------- Names and tickers ----------
 test("company names are tidied", () => {
   assert.equal(tidyName("COSTCO WHOLESALE CORP /NEW", "COST"), "Costco Wholesale Corp");
