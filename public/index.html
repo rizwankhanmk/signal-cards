@@ -104,10 +104,32 @@
   .guess { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .guess button { font-size: 17px; font-weight: 500; padding: 12px 24px; border-radius: 999px; cursor: pointer; background: var(--surface); border: 1px solid transparent; }
   .guess button:hover { border-color: var(--text); }
+  .guess button { transition: transform .12s ease, background .2s ease, color .2s ease, opacity .2s ease; }
+  .guess button:active { transform: scale(.96); }
+  /* Your pick lights up for a beat before the card turns */
+  .guess.chosen button { opacity: .3; pointer-events: none; }
+  .guess.chosen button.picked { opacity: 1; background: var(--text); color: var(--bg); transform: scale(1.05); }
   .verdict { font-size: 15px; color: var(--muted); margin: 0 0 6px; }
-  @keyframes flip { from { transform: rotateX(80deg); opacity: 0; } to { transform: none; opacity: 1; } }
-  .flipped { animation: flip .4s ease; }
-  @media (prefers-reduced-motion: reduce) { .flipped { animation: none; } .tile { transition: none; } }
+  /* The reveal, in order: the answer turns over like a card, the verdict and the line follow,
+     then the reader's line, then the numbers. A catch pops the mark; a miss gives a small shake. */
+  @keyframes turn { from { transform: perspective(900px) rotateX(-86deg); opacity: 0; } 55% { opacity: 1; } to { transform: perspective(900px) rotateX(0); opacity: 1; } }
+  @keyframes rise { from { transform: translateY(14px); opacity: 0; } to { transform: none; opacity: 1; } }
+  @keyframes pop { 0% { transform: scale(0); } 65% { transform: scale(1.7); } 100% { transform: scale(1); } }
+  @keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-7px); } 50% { transform: translateX(6px); } 80% { transform: translateX(-3px); } }
+  @keyframes tileflip { from { transform: perspective(700px) rotateY(-88deg); opacity: .15; } to { transform: perspective(700px) rotateY(0); opacity: 1; } }
+  .fresh .reveal { animation: turn .6s cubic-bezier(.2, .8, .3, 1.12) both; transform-origin: 50% 0; }
+  .fresh .reveal .verdict { animation: rise .45s ease .3s both; }
+  .fresh .reveal .line { animation: rise .5s ease .42s both; }
+  .fresh .reveal .next { animation: rise .5s ease .62s both; }
+  .fresh .hair, .fresh .proof { animation: rise .55s ease .85s both; }
+  .fresh .proof + .proof { animation-delay: 1s; }
+  .fresh .reveal.hit .name .mark { animation: pop .5s ease .55s both; }
+  .fresh .reveal.miss .name { animation: shake .4s ease .6s both; }
+  .tile.flipped { animation: tileflip .55s cubic-bezier(.2, .8, .3, 1.1) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .tile.flipped, .fresh .reveal, .fresh .reveal *, .fresh .hair, .fresh .proof { animation: none !important; }
+    .tile, .guess button { transition: none; }
+  }
   .tick { display: flex; gap: 10px; align-items: center; font-size: 15px; margin: 8px 0 0; padding: 10px 0; min-height: 44px; cursor: pointer; width: fit-content; }
   .tick input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--text); border-radius: 4px; }
 
@@ -299,7 +321,9 @@
   // ?ticker=AAPL&vs=COST shows the two companies side by side.
   let data = null;     // the company currently loaded
   let other = null;    // the company it is being compared with, if any
-  let justFlipped = 0; // the card that was just guessed, so its tile can flip once
+  let justFlipped = 0; // the card that was just guessed, so its reveal plays once
+  let tileToFlip = 0;  // the same card's tile, so it turns over once when you go back to the eight
+  let picking = false; // true for the short beat between tapping a guess and the card turning
   const loaded = {};   // companies already fetched in this visit
   const where = () => {
     const q = new URLSearchParams(location.search);
@@ -335,7 +359,7 @@
     const c = d.cards[n - 1], g = guesses(d), ch = checks(d), down = faceDown(d, n);
     const result = !canGuess(c) || down || g[n] === "skip" ? "" : g[n] === c.tone ? "You caught it" : `You said ${TONES[g[n]]}`;
     return `
-      <button class="tile${c.label ? "" : " empty"}${down ? " down" : ""}${d === data && n === justFlipped ? " flipped" : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}">
+      <button class="tile${c.label ? "" : " empty"}${down ? " down" : ""}${d === data && n === tileToFlip ? " flipped" : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}">
         <span class="t-top"><span class="t-name">${esc(W(c, "signal"))}</span>${c.rows.length && !down ? `<span class="badge">${ch[n] ? "Checked" : "Draft"}</span>` : ""}</span>
         <span class="t-big${c.big.length >= 8 ? " long" : ""}">${esc(c.big)}</span>
         <span class="t-small">${esc(c.small)}</span>
@@ -379,7 +403,7 @@
     $("company").textContent = d.company;
     $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
     $("grid").innerHTML = d.cards.map((c, i) => tile(d, i + 1)).join("");
-    justFlipped = 0;
+    tileToFlip = 0;
     drawScore(d);
   }
 
@@ -396,7 +420,7 @@
     $("compare").innerHTML = `${notes.join("")}
       <div class="cmp-head">${head(a)}${head(b)}</div>
       ${a.cards.map((c, i) => `<h3>${esc(W(c, "signal"))}</h3><div class="cmp-two">${tile(a, i + 1)}${tile(b, i + 1)}</div>`).join("")}`;
-    justFlipped = 0;
+    tileToFlip = 0;
   }
 
   // The score line above the tiles.
@@ -451,6 +475,7 @@
         <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
         <p class="big">${esc(c.big)}</p>
         <p class="under">${esc(c.small)}</p>`;
+    $("detail").classList.toggle("fresh", !down && n === justFlipped); // play the reveal once, right after a guess
     if (down) { // face down: the two numbers and the question, nothing that gives the answer away
       $("detail").innerHTML = `${top}
       <div class="hero">${numbers}
@@ -462,7 +487,7 @@
     }
     $("detail").innerHTML = `${top}
       <div class="hero">${numbers}
-        <div class="reveal${n === justFlipped ? " flipped" : ""}">
+        <div class="reveal${!said || said === "skip" || !canGuess(c) ? "" : said === c.tone ? " hit" : " miss"}">
           <p class="verdict">${esc(verdict)}</p>
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
@@ -547,9 +572,17 @@
     if (!data) return;
     const { card } = where();
     const guess = e.target.closest("[data-guess]");
-    if (guess && card) { // a guess on a card screen: remember it and flip
-      store.set(keyFor("guess", data), { ...guesses(data), [card]: guess.dataset.guess });
-      justFlipped = card; return render();
+    if (guess && card) { // a guess on a card screen: light up the pick, then remember it and turn the card
+      if (picking) return;
+      const d = data, commit = () => {
+        picking = false;
+        store.set(keyFor("guess", d), { ...guesses(d), [card]: guess.dataset.guess });
+        justFlipped = tileToFlip = card; render();
+      };
+      const box = guess.closest(".guess");
+      if (!box || matchMedia("(prefers-reduced-motion: reduce)").matches) return commit();
+      picking = true; box.classList.add("chosen"); guess.classList.add("picked");
+      return setTimeout(commit, 340);
     }
     if (e.target.closest("#reveal")) { // flip everything that is still face down, without scoring it
       const g = { ...guesses(data) };
