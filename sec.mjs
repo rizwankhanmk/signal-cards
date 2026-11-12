@@ -4,7 +4,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { buildCards } from "./signals.mjs";
 
-const VERSION = 7;                       // bump when the saved shape changes, so old saved files are refetched
+const VERSION = 8;                       // bump when the saved shape changes, so old saved files are refetched
 const TICKER_LIST = "https://www.sec.gov/files/company_tickers.json";
 const HOURS = 3_600_000;
 // Where saved copies go. On your computer: the data/ folder. On Vercel the project folder is
