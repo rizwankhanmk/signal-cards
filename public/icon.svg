@@ -1,9 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- A card with the three marks: good (hollow), watch (half), warning (filled). -->
-  <rect width="512" height="512" fill="#1d1d1f"/>
-  <rect x="72" y="146" width="368" height="220" rx="48" fill="#f5f5f7"/>
-  <circle cx="152" cy="256" r="32" fill="none" stroke="#2f9e6e" stroke-width="16"/>
-  <circle cx="256" cy="256" r="32" fill="none" stroke="#c58a12" stroke-width="16"/>
-  <path d="M256 224a32 32 0 0 0 0 64z" fill="#c58a12"/>
-  <circle cx="360" cy="256" r="40" fill="#d24b3e"/>
+  <!-- A bull peeking over a signal card that shows the three marks: good (hollow), watch (half),
+       warning (filled). An original drawing, not a copy of any sculpture or logo. It fills the square. -->
+  <rect width="512" height="512" fill="#e6a82e"/>
+  <!-- horns, reaching for the top corners -->
+  <path d="M176 196C96 196 34 132 52 16c30 78 80 112 164 124z" fill="#f5f5f7"/>
+  <path d="M336 196c80 0 142-64 124-180-30 78-80 112-164 124z" fill="#f5f5f7"/>
+  <!-- ears -->
+  <ellipse cx="70" cy="244" rx="52" ry="30" transform="rotate(-24 70 244)" fill="#2c2c30"/>
+  <ellipse cx="442" cy="244" rx="52" ry="30" transform="rotate(24 442 244)" fill="#2c2c30"/>
+  <!-- head -->
+  <path d="M256 100c130 0 190 96 180 196-6 70-36 130-80 166H156c-44-36-74-96-80-166C66 196 126 100 256 100z" fill="#1d1d1f"/>
+  <!-- eyes, looking down at the card -->
+  <circle cx="184" cy="236" r="38" fill="#f5f5f7"/>
+  <circle cx="328" cy="236" r="38" fill="#f5f5f7"/>
+  <circle cx="190" cy="250" r="18" fill="#1d1d1f"/>
+  <circle cx="322" cy="250" r="18" fill="#1d1d1f"/>
+  <circle cx="196" cy="243" r="6" fill="#f5f5f7"/>
+  <circle cx="328" cy="243" r="6" fill="#f5f5f7"/>
+  <!-- the card, and two hooves holding its top edge -->
+  <rect x="40" y="318" width="432" height="194" rx="44" fill="#f5f5f7"/>
+  <ellipse cx="96" cy="322" rx="40" ry="24" fill="#1d1d1f"/>
+  <ellipse cx="416" cy="322" rx="40" ry="24" fill="#1d1d1f"/>
+  <!-- the three marks -->
+  <circle cx="148" cy="418" r="36" fill="none" stroke="#2f9e6e" stroke-width="18"/>
+  <circle cx="256" cy="418" r="36" fill="none" stroke="#c58a12" stroke-width="18"/>
+  <path d="M256 382a36 36 0 0 0 0 72z" fill="#c58a12"/>
+  <circle cx="364" cy="418" r="45" fill="#d24b3e"/>
 </svg>

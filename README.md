@@ -84,7 +84,9 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   revealed cards said, and a choice to go on to Cash and debt or back to all cards. Going backwards, or tapping
   a tile directly, skips it.
 - It can be added to a phone's home screen as an app: `public/` holds the icon (`icon.svg` and PNG sizes made
-  from it), a web manifest and a link-preview image.
+  from it), a web manifest and a link-preview image. The icon is a bull peeking over a signal card with the
+  three marks. It is an original drawing. A phone keeps the old icon until the app is removed from the home
+  screen and added again.
 - Tapping the name swaps its words, "Signal Cards" to "Card Signals" and back, and takes you home.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
