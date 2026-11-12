@@ -28,7 +28,7 @@ The app runs on Vercel with no build step: Vercel serves `public/` and runs the 
 3. Deploy. Vercel redeploys on every push to `main`.
 
 Online, each company's answer is kept by Vercel's network for a day, so the SEC is asked about once per
-company per day. `server.mjs` is only for running the app on your own computer.
+company per day. `local-server.mjs` is only for running the app on your own computer.
 
 ## Look and voice
 
