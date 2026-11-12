@@ -7,10 +7,14 @@ Educational, not financial advice.
 
 1. Copy `.env.example` to `.env` and put your name and contact email in it. The SEC asks for this on every request.
 2. `npm start`, open http://localhost:3000, type a company name or a ticker and pick from the list.
-3. Or in the Terminal: `npm run fetch AAPL COST JPM` prints the eight cards for each company, plus a checklist of the numbers to verify in its 10-K. With no ticker it fetches WD-40 (WDFC).
+3. Or in the Terminal: `npm run fetch AAPL COST JPM` prints the twelve cards for each company, plus a checklist of the numbers to verify in its 10-K. With no ticker it fetches WD-40 (WDFC).
 
 The eight signals: Inventory, Accounts receivable, Capital expenditure, Research and development,
 Gross profit, SG&A, Effective tax rate, Labour force.
+
+Four more cards cover what the eight signals leave out, cash and debt: Cash from profit, Free cash flow,
+What it owes, Return on assets. The cards that compare an item with sales also show the ratio an analyst
+would quote, such as days of inventory or SG&A as a share of sales.
 
 How it works:
 - `sec.mjs` finds the company in the SEC's ticker list, pulls its numbers and saves them in `data/` for a day.
@@ -145,6 +149,33 @@ Effective tax rate = income tax ÷ pre-tax profit × 100. The label looks at the
 | Down more than 2 points | Neutral / watch (a lift that may not repeat) |
 | Up more than 2 points | Warning |
 | Pre-tax profit zero or a loss in either year | Doesn't apply |
+
+### Cash and debt
+
+These four are not in the original brief. Their thresholds are judgement calls.
+
+| Card | What is measured | Label |
+| --- | --- | --- |
+| Cash from profit | Cash from operations ÷ net income × 100 | 100 or more: Good. 80 to under 100: Neutral / watch. Under 80: Warning. A loss in either year: Doesn't apply |
+| Free cash flow | (Cash from operations − capital expenditure) ÷ sales × 100 | Zero or below: Warning. Positive but more than 2 points lower than last year: Neutral / watch. Otherwise: Good |
+| What it owes | (Total assets − total equity) ÷ total assets × 100 | Down more than 2 points: Good. Within 2 points: Neutral / watch. Up more than 2 points, or 100 and over: Warning |
+| Return on assets | Net income ÷ total assets × 100 | Up more than 1 point: Good. Within 1 point: Neutral / watch. Down more than 1 point, or a loss: Warning |
+
+Banks and insurers get "Doesn't apply" for the first three. For Return on assets they use a finer threshold
+of 0.2 points, because a bank earns about $1 for every $100 of assets.
+"What it owes" counts every liability, not only loans. It is assets minus equity, so it always adds up.
+
+### The ratio an analyst would quote
+
+Shown under the numbers on five cards. They use year-end balances as printed, not averages.
+
+| Card | Ratio | Formula |
+| --- | --- | --- |
+| Inventory | Days of inventory | Inventory ÷ cost of sales × 365 |
+| Accounts receivable | Days to collect | Receivables ÷ sales × 365 |
+| Capital expenditure | Capex as a share of sales, and capex against depreciation | Capex ÷ sales × 100; capex ÷ depreciation |
+| Research and development | R&D as a share of sales | R&D ÷ sales × 100 |
+| SG&A | SG&A as a share of sales | SG&A ÷ sales × 100 |
 
 ### When there is no label
 

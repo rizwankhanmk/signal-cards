@@ -30,6 +30,17 @@ const CONCEPTS = {
                  tags: ["IncomeTaxExpenseBenefit"] },
   pretax:      { name: "Pre-tax profit", plain: "Profit before tax",      statement: "Income statement",    instant: false, hint: /BeforeIncomeTaxes/,
                  tags: ["IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest", "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"] },
+  // For the cash and debt cards, and the ratios an analyst would quote.
+  ocf:         { name: "Cash from operations", plain: "Cash the business brought in", statement: "Cash flow statement", instant: false, hint: /^NetCashProvidedByUsedInOperating/,
+                 tags: ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"] },
+  netincome:   { name: "Net income", plain: "Profit after everything", statement: "Income statement", instant: false, hint: /^(NetIncomeLoss|ProfitLoss)$/,
+                 tags: ["NetIncomeLoss", "ProfitLoss"] },
+  assets:      { name: "Total assets", plain: "Everything it owns", statement: "Balance sheet", instant: true, hint: /^Assets$/,
+                 tags: ["Assets"] },
+  equity:      { name: "Total equity", plain: "The owners' share", statement: "Balance sheet", instant: true, hint: /^StockholdersEquity/,
+                 tags: ["StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest", "StockholdersEquity"] },
+  depreciation:{ name: "Depreciation and amortisation", plain: "Wear and tear charged this year", statement: "Cash flow statement", instant: false, hint: /^Depreciation/,
+                 tags: ["DepreciationDepletionAndAmortization", "DepreciationAndAmortization", "DepreciationAmortizationAndAccretionNet", "Depreciation"] },
 };
 
 // Banks, insurers and other financial companies. The SEC gives every company an industry code (SIC).
@@ -151,6 +162,44 @@ function taxLabel(change, thisR, lastR) {
   return both("Warning", N => `${N} jumped from ${moved}. Either this year is high or last year was low. Find out which.`, w);
 }
 
+// ---------- Cash and debt: four more cards, with their own rules ----------
+// These lines have no accounting jargon to translate, so the plain version is the same.
+const same = (name, reason) => ({ name, reason, plain: reason });
+const money = x => `$${one(Math.abs(x))}`;
+
+// Cash from profit: for every $100 of profit, how much cash came in from running the business?
+const CASH_GOOD = 100, CASH_WATCH = 80;
+function cashLabel(r) {
+  if (r >= CASH_GOOD) return same("Good", `${money(r)} of cash came in for every $100 of profit. The profit is real money.`);
+  if (r >= CASH_WATCH) return same("Neutral / watch", `${money(r)} of cash came in for every $100 of profit. Some of that profit is still an IOU.`);
+  return same("Warning", `${r < 0 ? "Cash went out while the accounts showed a profit." : `Only ${money(r)} of cash came in for every $100 of profit.`} Profit on paper, less in the bank. Ask where it went.`);
+}
+
+// Free cash flow: cash from operations minus capital expenditure, as a share of sales.
+const FCF_THINNER_PP = 2;
+function fcfLabel(change, thisM, lastM) {
+  if (thisM <= 0) return same("Warning", `The business spent more cash than it brought in. Free cash flow was ${one(thisM).replace("-", "−")}% of sales. Somebody has to fund that.`);
+  if (change < -FCF_THINNER_PP) return same("Neutral / watch", `${one(thisM)} cents of every sales dollar was left over as free cash, down from ${one(lastM)}. Still positive. Thinner.`);
+  return same("Good", `${one(thisM)} cents of every sales dollar was left over as free cash. Last year: ${one(lastM)}. That's money with no strings on it.`);
+}
+
+// What it owes: liabilities as a share of assets. The label looks at the direction, not the level.
+const OWES_STEADY_PP = 2;
+function owesLabel(change, thisR, lastR) {
+  if (thisR >= 100) return same("Warning", `It owes more than it owns: liabilities are ${one(thisR)}% of assets. The owners' share is below zero.`);
+  if (change > OWES_STEADY_PP) return same("Warning", `Other people's money funds ${one(thisR)}% of the assets, up from ${one(lastR)}%. Leaning harder on borrowing and credit.`);
+  if (change < -OWES_STEADY_PP) return same("Good", `Other people's money funds ${one(thisR)}% of the assets, down from ${one(lastR)}%. Leaning less on borrowing and credit.`);
+  return same("Neutral / watch", `Other people's money funds ${one(thisR)}% of the assets. Last year: ${one(lastR)}%. No real change.`);
+}
+
+// Return on assets: profit for every $100 of assets. Banks earn about $1, so they get a finer threshold.
+function roaLabel(change, thisR, lastR, steady) {
+  if (thisR <= 0) return same("Warning", `It lost ${money(thisR)} for every $100 of assets. The assets are not paying their way.`);
+  if (change > steady) return same("Good", `It earned ${money(thisR)} for every $100 of assets, up from ${money(lastR)}. The assets are working harder.`);
+  if (change < -steady) return same("Warning", `It earned ${money(thisR)} for every $100 of assets, down from ${money(lastR)}. The assets are earning less.`);
+  return same("Neutral / watch", `It earned ${money(thisR)} for every $100 of assets. Last year: ${money(lastR)}. Steady.`);
+}
+
 // The last line of a card, one for each reader. Same card, different question.
 // Investor: what to check in the filing before trusting the number. CFO: what to ask inside the business.
 // Never buy or sell advice. Order: [investor, cfo] for good, watch, warn.
@@ -179,6 +228,22 @@ const NEXT = {
     good:  ["Check the saving isn't a one-off, like a pause in advertising.", "Ask what was cut, and whether sales will miss it."],
     watch: ["Check the breakdown: selling, marketing, head office.", "Ask which overhead line grew fastest."],
     warn:  ["Check what grew: people, advertising, or one-off costs?", "Ask which budgets overran, and what the money bought."] },
+  "Cash from profit": {
+    good:  ["Check it isn't a one-off, like stretching payments to suppliers.", "Ask what brought the cash in, and whether it can happen again."],
+    watch: ["Check the cash flow statement: which working-capital line took the cash?", "Ask which of stock, customer bills or supplier payments soaked up the cash."],
+    warn:  ["Read the cash flow statement line by line. Where did the profit go?", "Ask for cash collected against sales booked, by business line."] },
+  "Free cash flow": {
+    good:  ["Check what the free cash is used for: dividends, buybacks, debt or deals.", "Ask what the plan is for the spare cash."],
+    watch: ["Check whether cash from operations fell or capital spending rose.", "Ask whether the squeeze is a planned investment or a slipping business."],
+    warn:  ["Check how the gap was funded: borrowing, new shares, or cash in the bank.", "Ask how many months the current cash covers at this rate."] },
+  "What it owes": {
+    good:  ["Check what was paid down, and what it cost to do so.", "Ask whether paying down debt beat investing the money."],
+    watch: ["Check the debt note for what falls due in the next two years.", "Ask what refinancing is coming, and at what rate."],
+    warn:  ["Read the debt note: what was borrowed, at what rate, due when?", "Ask what the new borrowing paid for, and what conditions the lenders set."] },
+  "Return on assets": {
+    good:  ["Check whether profit rose or assets shrank. They are not the same story.", "Ask which assets earn the most, and how to get more of them."],
+    watch: ["Check the return by segment, if the filing gives it.", "Ask which parts of the business earn their keep and which do not."],
+    warn:  ["Check for write-downs or a big purchase that swelled the assets.", "Ask which assets are not earning, and what happens to them."] },
   "Effective tax rate": {
     good:  ["Check the tax note anyway. A steady rate can hide one-offs that cancel out.", "Ask your tax team whether anything in the tax note is about to change."],
     watch: ["Read the tax rate reconciliation in the notes. Find the one-off.", "Ask your tax team what lowered the rate, and whether it repeats."],
@@ -188,6 +253,7 @@ const PLAIN_SIGNAL = {
   "Inventory": "Unsold stock", "Accounts receivable": "Unpaid customer bills", "Capital expenditure": "Buildings and equipment",
   "Research and development": "Research spending", "Gross profit": "Profit after direct costs", "SG&A": "Overheads",
   "Effective tax rate": "Share of profit paid in tax", "Labour force": "People employed",
+  "Cash from profit": "Did profit turn into cash?", "Free cash flow": "Cash left over", "What it owes": "What it owes", "Return on assets": "What the assets earn",
 };
 
 // A label's tone, for the small mark beside it: hollow = good, half = watch, filled = warning.
@@ -203,6 +269,10 @@ const WHAT = {
   "SG&A": "Selling, general and administrative costs: the overheads of running the business, such as salaries, offices and advertising.",
   "Effective tax rate": "The share of pre-tax profit that goes to income tax. Big swings often come from one-off items.",
   "Labour force": "How many people the company employs. Set against sales, it shows whether each person is producing more.",
+  "Cash from profit": "Profit is an opinion; cash is a fact. This sets the cash the business actually brought in against the profit it reported.",
+  "Free cash flow": "Cash from running the business, minus what was spent on buildings and equipment. It is what is left to pay lenders and owners.",
+  "What it owes": "Everything the company owes (loans, bills, promises) as a share of everything it owns. The rest belongs to the shareholders.",
+  "Return on assets": "Profit for every $100 of assets. It shows how hard the company's buildings, stock and cash are working.",
 };
 
 // ---------- 4. Build the cards ----------
@@ -248,7 +318,7 @@ export function buildCards(facts, cik, info = {}) {
   const inMillions = found.every(f => f.this_year.usd % 1e6 === 0 && f.last_year.usd % 1e6 === 0);
   const UNIT = inMillions ? 1e6 : 1e3;
   const unit = inMillions ? "USD millions" : "USD thousands";
-  const fmt = usd => Math.round(usd / UNIT).toLocaleString("en-US");
+  const fmt = usd => { const n = Math.round(usd / UNIT); return `${n < 0 ? "−" : ""}${Math.abs(n).toLocaleString("en-US")}`; };
 
   // One table row: item, this year, last year, formula and result, source.
   const inputRow = (f, formula = []) => ({
@@ -263,14 +333,14 @@ export function buildCards(facts, cik, info = {}) {
     return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${g < 0 ? "−" : ""}${one(Math.abs(g))}%`]), growth_pct: g };
   };
   const industry = info.sicDescription ? ` (SEC industry: ${info.sicDescription})` : "";
-  const noCard = (signal, state, note) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: null, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, status: "Draft", note, big: "—", small: "" });
+  const noCard = (signal, state, note) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: null, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, ratios: [], status: "Draft", note, big: "—", small: "" });
   // A missing item is "Doesn't apply" only where we know why; otherwise it is "Not found".
   const missingCard = (signal, missing, financialNote) => financialNote && isFinancial(info.sic)
     ? noCard(signal, "Doesn't apply", `${financialNote}${industry}.`)
     : noCard(signal, "Not found", `Not found in the SEC data for these two years: ${missing.join(", ")}. The company may not report it as its own line. Missing does not mean zero.`);
   // big and small: the one number shown on the tile, and the line under it.
   const nextFor = (signal, label) => { const pair = label && NEXT[signal]?.[TONE[label.name]]; return pair ? { investor: pair[0], cfo: pair[1] } : null; };
-  const card = (signal, rows, label, extra = {}) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: nextFor(signal, label), what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, status: "Draft", big: "—", small: "", ...extra });
+  const card = (signal, rows, label, extra = {}) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: nextFor(signal, label), what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, ratios: [], status: "Draft", big: "—", small: "", ...extra });
 
   // 7. The last few years, for context. The label still comes from the latest two years only.
   // Each trend row compares one year with the year before, using the same rules as the label.
@@ -307,12 +377,45 @@ export function buildCards(facts, cik, info = {}) {
   const salesRow = growthRow(F.sales);
   const s = salesRow.growth_pct;
 
+  // The ratio an analyst would quote for each item, beside the growth rate. Uses year-end balances, as printed.
+  function ratiosFor(key) {
+    const [a, b] = [F[key].this_year.usd, F[key].last_year.usd], [sa, sb] = [F.sales.this_year.usd, F.sales.last_year.usd];
+    const share = (name, plain, reading) => {
+      const [pa, pb] = [round1(a / sa * 100), round1(b / sb * 100)];
+      return { name, name_plain: plain, this_year: `${one(pa)}%`, last_year: `${one(pb)}%`,
+        formula: [`${fmt(a)} ÷ ${fmt(sa)} × 100 = ${one(pa)}%`, `${fmt(b)} ÷ ${fmt(sb)} × 100 = ${one(pb)}%`], reading: reading(one(pa), one(pb)) };
+    };
+    const daysOf = (name, plain, over, reading) => {
+      const [oa, ob] = [over.this_year.usd, over.last_year.usd];
+      if (oa <= 0 || ob <= 0) return null;
+      const [da, db] = [Math.round(a / oa * 365), Math.round(b / ob * 365)];
+      return { name, name_plain: plain, this_year: `${da} days`, last_year: `${db} days`,
+        formula: [`${fmt(a)} ÷ ${fmt(oa)} × 365 = ${da} days`, `${fmt(b)} ÷ ${fmt(ob)} × 365 = ${db} days`], reading: reading(da, db) };
+    };
+    const out = [];
+    if (key === "inventory" && F.cost) out.push(daysOf("Days of inventory", "Days of stock on hand", F.cost, (x, y) => `At this year's pace, the stock on hand would last ${x} days. Last year: ${y}.`));
+    if (key === "receivables") out.push(daysOf("Days to collect", "Days customers take to pay", F.sales, (x, y) => `Customers take about ${x} days to pay. Last year: ${y}.`));
+    if (key === "sga") out.push(share("SG&A as a share of sales", "Overheads as a share of sales", (x, y) => `Overheads take ${x} cents of every sales dollar. Last year: ${y}.`));
+    if (key === "rnd") out.push(share("R&D as a share of sales", "Research as a share of sales", (x, y) => `${x} cents of every sales dollar goes back into research. Last year: ${y}.`));
+    if (key === "capex") {
+      out.push(share("Capex as a share of sales", "Buildings and equipment as a share of sales", (x, y) => `${x} cents of every sales dollar goes into buildings and equipment. Last year: ${y}.`));
+      const [da, db] = F.depreciation ? [F.depreciation.this_year.usd, F.depreciation.last_year.usd] : [0, 0];
+      if (da > 0 && db > 0) {
+        const [ta, tb] = [round1(a / da), round1(b / db)];
+        out.push({ name: "Capex against depreciation", name_plain: "New spending against wear and tear", this_year: `${one(ta)}×`, last_year: `${one(tb)}×`,
+          formula: [`${fmt(a)} ÷ ${fmt(da)} = ${one(ta)}×`, `${fmt(b)} ÷ ${fmt(db)} = ${one(tb)}×`],
+          reading: ta >= 1 ? `It is spending ${one(ta)} times what wears out each year. The asset base is growing.` : `It is spending ${one(ta)} times what wears out each year. Below 1×, the asset base is shrinking.` });
+      }
+    }
+    return out.filter(Boolean);
+  }
+
   // Item growth against sales growth.
   function versusSales(signal, key, labeller, financialNote) {
     if (!F[key]) return missingCard(signal, [CONCEPTS[key].name], financialNote);
     const row = growthRow(F[key]);
     if (s === null || row.growth_pct === null) return card(signal, [salesRow, row], null, { state: "No label", note: "A growth rate could not be worked out because last year's figure was zero." });
-    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller) });
+    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller), ratios: ratiosFor(key) });
   }
 
   function grossProfit() {
@@ -354,6 +457,73 @@ export function buildCards(facts, cik, info = {}) {
     return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend });
   }
 
+  // ---------- Cash and debt ----------
+  const worked = (item, plain, a, b, formula) => ({ item, item_plain: plain, statement: "Worked out here", this_year: a, last_year: b, formula });
+  const need = (signal, keys, financialNote) => {
+    if (financialNote && isFinancial(info.sic)) return noCard(signal, "Doesn't apply", `${financialNote}${industry}.`);
+    const missing = keys.filter(k => !F[k]).map(k => CONCEPTS[k].name);
+    return missing.length ? missingCard(signal, missing) : null;
+  };
+  const pair = k => [F[k].this_year.usd, F[k].last_year.usd];
+  const neg = x => one(x).replace("-", "−");               // −1.5, with a proper minus
+  const inBrackets = x => (x < 0 ? `(${neg(x)})` : neg(x)); // so a subtraction reads 1.0 − (−1.5)
+  // The last row of a rate card: the rate for each year, how it was worked out, and the change.
+  const rateCard = (signal, rows, name, plain, a, b, howA, howB, small, label, series, labelFor) => {
+    const change = round1(a - b);
+    rows.push(worked(name, plain, `${neg(a)}%`, `${neg(b)}%`, [`${howA} = ${neg(a)}%`, `${howB} = ${neg(b)}%`, `${neg(a)} − ${inBrackets(b)} = ${signed(change)} percentage points`]));
+    return card(signal, rows, label(change), { change_pp: change, big: `${neg(a)}%`, small: `${signed(change)} points on last year`, measure: small, trend: rateTrend(name, plain, series, labelFor) });
+  };
+
+  function cashFromProfit() {
+    const no = need("Cash from profit", ["ocf", "netincome"], "A bank's cash flows are mostly customers' money moving in and out, so cash against profit says little");
+    if (no) return no;
+    const [ca, cb] = pair("ocf"), [na, nb] = pair("netincome");
+    const rows = [inputRow(F.ocf), inputRow(F.netincome)];
+    if (na <= 0 || nb <= 0) return card("Cash from profit", rows, null, { state: "Doesn't apply", note: "The company made a loss in one of the two years, so cash per $100 of profit would mislead. Read the two numbers above side by side." });
+    const [ra, rb] = [round1(ca / na * 100), round1(cb / nb * 100)];
+    const [cs, ns] = [seriesOf(F.ocf), seriesOf(F.netincome)];
+    const series = cs.map((c, k) => c === null || ns[k] === null || ns[k] <= 0 ? null : round1(c / ns[k] * 100));
+    return rateCard("Cash from profit", rows, "Cash against profit", "Cash as a share of profit", ra, rb, `${fmt(ca)} ÷ ${fmt(na)} × 100`, `${fmt(cb)} ÷ ${fmt(nb)} × 100`, "of profit came in as cash", () => cashLabel(ra), series, (k, ch, a) => cashLabel(a).name);
+  }
+
+  function freeCashFlow() {
+    const no = need("Free cash flow", ["ocf", "capex"], "A bank's cash flows are mostly customers' money moving in and out, so free cash flow says little");
+    if (no) return no;
+    const [ca, cb] = pair("ocf"), [xa, xb] = pair("capex"), [sa, sb] = pair("sales");
+    const [fa, fb] = [ca - xa, cb - xb];
+    const [ma, mb] = [round1(fa / sa * 100), round1(fb / sb * 100)];
+    const rows = [inputRow(F.ocf), inputRow(F.capex), salesRow,
+      worked("Free cash flow", "Cash left over", fmt(fa), fmt(fb), [`${fmt(ca)} − ${fmt(xa)} = ${fmt(fa)}`, `${fmt(cb)} − ${fmt(xb)} = ${fmt(fb)}`])];
+    const [cs, xs] = [seriesOf(F.ocf), seriesOf(F.capex)];
+    const series = cs.map((c, k) => c === null || xs[k] === null ? null : round1((c - xs[k]) / salesSeries[k] * 100));
+    return rateCard("Free cash flow", rows, "Free cash flow margin", "Cash left over as a share of sales", ma, mb, `${fmt(fa)} ÷ ${fmt(sa)} × 100`, `${fmt(fb)} ÷ ${fmt(sb)} × 100`, "of sales left as free cash", ch => fcfLabel(ch, ma, mb), series, (k, ch, a, b) => fcfLabel(ch, a, b).name);
+  }
+
+  function whatItOwes() {
+    const no = need("What it owes", ["assets", "equity"], "Banks run on borrowed money by design: deposits are their raw material. This yardstick is for other companies");
+    if (no) return no;
+    const [aa, ab] = pair("assets"), [ea, eb] = pair("equity");
+    const [la, lb] = [aa - ea, ab - eb];
+    const [ra, rb] = [round1(la / aa * 100), round1(lb / ab * 100)];
+    const rows = [inputRow(F.assets), inputRow(F.equity),
+      worked("Liabilities", "Everything it owes", fmt(la), fmt(lb), [`${fmt(aa)} − ${ea < 0 ? `(${fmt(ea)})` : fmt(ea)} = ${fmt(la)}`, `${fmt(ab)} − ${eb < 0 ? `(${fmt(eb)})` : fmt(eb)} = ${fmt(lb)}`])];
+    const [as, es] = [seriesOf(F.assets), seriesOf(F.equity)];
+    const series = as.map((a, k) => a === null || es[k] === null || a <= 0 ? null : round1((a - es[k]) / a * 100));
+    return rateCard("What it owes", rows, "Liabilities as a share of assets", "Share of assets funded by what it owes", ra, rb, `${fmt(la)} ÷ ${fmt(aa)} × 100`, `${fmt(lb)} ÷ ${fmt(ab)} × 100`, "of assets funded by what it owes", ch => owesLabel(ch, ra, rb), series, (k, ch, a, b) => owesLabel(ch, a, b).name);
+  }
+
+  function returnOnAssets() {
+    const no = need("Return on assets", ["netincome", "assets"]);
+    if (no) return no;
+    const steady = isFinancial(info.sic) ? 0.2 : 1; // points; banks earn about 1%, so small moves matter
+    const [na, nb] = pair("netincome"), [aa, ab] = pair("assets");
+    const [ra, rb] = [round1(na / aa * 100), round1(nb / ab * 100)];
+    const rows = [inputRow(F.netincome), inputRow(F.assets)];
+    const [ns, as] = [seriesOf(F.netincome), seriesOf(F.assets)];
+    const series = ns.map((n, k) => n === null || as[k] === null || as[k] <= 0 ? null : round1(n / as[k] * 100));
+    return rateCard("Return on assets", rows, "Return on assets", "What the assets earn", ra, rb, `${fmt(na)} ÷ ${fmt(aa)} × 100`, `${fmt(nb)} ÷ ${fmt(ab)} × 100`, "earned on its assets", ch => roaLabel(ch, ra, rb, steady), series, (k, ch, a, b) => roaLabel(ch, a, b, steady).name);
+  }
+
   const cards = [
     versusSales("Inventory", "inventory", (a, b) => paceLabel(a, b, WORDS.inventory), "Banks and insurers don't hold stock to sell. Nothing to read here"),
     versusSales("Accounts receivable", "receivables", (a, b) => paceLabel(a, b, WORDS.receivables), "Banks and insurers lend money rather than bill customers. Trade receivables are the wrong yardstick"),
@@ -363,7 +533,9 @@ export function buildCards(facts, cik, info = {}) {
     versusSales("SG&A", "sga", (a, b) => paceLabel(a, b, WORDS.sga)),
     taxRate(),
     noCard("Labour force", "Not found", "The SEC's number feed does not carry headcount; it sits in the 10-K text (Item 1, Human Capital). It will be read from there in a later step."),
+    cashFromProfit(), freeCashFlow(), whatItOwes(), returnOnAssets(),
   ];
+  cards.forEach((c, i) => { c.deck = i < 8 ? "The eight signals" : "Cash and debt"; });
 
   // For anything missing, list look-alike tags the company did use this year. Helps fix the tag lists above.
   const lookalikes = {};
@@ -375,9 +547,9 @@ export function buildCards(facts, cik, info = {}) {
     if (hits.length) lookalikes[c.name] = hits;
   }
 
-  const live = cards.filter(c => c.label).length;
+  const live = cards.slice(0, 8).filter(c => c.label).length;
   const note = isFinancial(info.sic)
-    ? `Banks and insurers don't make or sell goods. These eight signals are built for companies that do, so only ${live === 1 ? "one applies" : `${live} apply`} here.`
+    ? `Banks and insurers don't make or sell goods. These eight signals are built for companies that do, so ${live === 0 ? "none of them applies" : live === 1 ? "only one applies" : `only ${live} apply`} here.`
     : null;
 
   return {

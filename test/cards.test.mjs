@@ -16,6 +16,8 @@ const TAGS = {
   inventory: ["InventoryNet", date], receivables: ["AccountsReceivableNetCurrent", date], sga: ["SellingGeneralAndAdministrativeExpense", year],
   rnd: ["ResearchAndDevelopmentExpense", year], capex: ["PaymentsToAcquirePropertyPlantAndEquipment", year], tax: ["IncomeTaxExpenseBenefit", year],
   pretax: ["IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest", year],
+  ocf: ["NetCashProvidedByUsedInOperatingActivities", year], netincome: ["NetIncomeLoss", year], assets: ["Assets", date],
+  equity: ["StockholdersEquity", date], depreciation: ["DepreciationDepletionAndAmortization", year],
 };
 // company({ sales: [110, 100], inventory: [52, 50] }) -> this year first, last year second, in thousands of dollars.
 function company(items, extra = {}) {
@@ -151,6 +153,86 @@ test("every label line has a plain-English version and a line for each reader", 
 });
 test("a company with under two years of sales is refused clearly", () => {
   assert.throws(() => buildCards({ entityName: "X", facts: { "us-gaap": {} } }, "1"), /not two years of annual sales/);
+});
+
+// ---------- The ratio an analyst would quote ----------
+test("days of inventory and days to collect use year-end balances", () => {
+  const c = cardsOf({ sales: [687993, 619985], cost: [307498, 278642], inventory: [83292, 79871], receivables: [122657, 120589] });
+  const inv = c["Inventory"].ratios[0], rec = c["Accounts receivable"].ratios[0];
+  assert.equal(inv.name, "Days of inventory"); assert.equal(inv.this_year, "99 days"); assert.equal(inv.last_year, "105 days");
+  assert.equal(inv.formula[0], "83,292 ÷ 307,498 × 365 = 99 days");
+  assert.equal(rec.name, "Days to collect"); assert.equal(rec.this_year, "65 days"); assert.equal(rec.last_year, "71 days");
+});
+test("no days of inventory without cost of sales", () => assert.deepEqual(cardsOf({ sales: [1100, 1000], inventory: [520, 500] })["Inventory"].ratios, []));
+test("SG&A and R&D as a share of sales", () => {
+  const c = cardsOf({ sales: [1000, 1000], sga: [327, 322], rnd: [12, 14] });
+  assert.equal(c["SG&A"].ratios[0].this_year, "32.7%"); assert.equal(c["Research and development"].ratios[0].last_year, "1.4%");
+});
+test("capex against depreciation appears only when depreciation is reported", () => {
+  const withDep = cardsOf({ sales: [1000, 1000], capex: [80, 50], depreciation: [100, 100] })["Capital expenditure"].ratios;
+  assert.deepEqual(withDep.map(r => r.name), ["Capex as a share of sales", "Capex against depreciation"]);
+  assert.equal(withDep[1].this_year, "0.8×"); assert.match(withDep[1].reading, /Below 1×/);
+  assert.equal(cardsOf({ sales: [1000, 1000], capex: [80, 50] })["Capital expenditure"].ratios.length, 1);
+});
+
+// ---------- Cash and debt ----------
+const cash = (ocfNow, niNow, ocfBefore = 100, niBefore = 100) => cardsOf({ sales: [1000, 1000], ocf: [ocfNow, ocfBefore], netincome: [niNow, niBefore] })["Cash from profit"];
+test("cash from profit: 100 or more per $100 of profit is Good", () => assert.equal(cash(115, 100).label.name, "Good"));
+test("cash from profit: 80 to under 100 is Neutral / watch", () => assert.equal(cash(85, 100).label.name, "Neutral / watch"));
+test("cash from profit: under 80 is Warning", () => {
+  assert.equal(cash(60, 100).label.name, "Warning");
+  assert.match(cash(-30, 100).label.reason, /Cash went out/);
+});
+test("cash from profit: a loss in either year is Doesn't apply", () => assert.equal(cash(50, -20).state, "Doesn't apply"));
+
+const fcf = (ocfNow, capexNow, ocfBefore, capexBefore) => cardsOf({ sales: [1000, 1000], ocf: [ocfNow, ocfBefore], capex: [capexNow, capexBefore] })["Free cash flow"];
+test("free cash flow is cash from operations minus capex, shown step by step", () => {
+  const c = fcf(150, 30, 140, 20);
+  assert.equal(c.big, "12.0%");
+  assert.deepEqual(c.rows.find(r => r.item === "Free cash flow").formula, ["150 − 30 = 120", "140 − 20 = 120"]);
+  assert.equal(c.label.name, "Good");
+});
+test("free cash flow: positive but more than 2 points thinner is Neutral / watch", () => assert.equal(fcf(100, 30, 140, 20).label.name, "Neutral / watch"));
+test("free cash flow: zero or negative is Warning", () => assert.equal(fcf(20, 30, 140, 20).label.name, "Warning"));
+
+const owes = (assetsNow, equityNow, assetsBefore, equityBefore) => cardsOf({ sales: [1000, 1000], assets: [assetsNow, assetsBefore], equity: [equityNow, equityBefore] })["What it owes"];
+test("what it owes: liabilities are assets minus equity", () => {
+  const c = owes(1000, 558, 1000, 513);
+  assert.equal(c.big, "44.2%"); assert.equal(c.rows.find(r => r.item === "Liabilities").this_year, "442");
+  assert.equal(c.label.name, "Good"); // down 4.5 points
+});
+test("what it owes: within 2 points is Neutral / watch, up more than 2 is Warning", () => {
+  assert.equal(owes(1000, 500, 1000, 510).label.name, "Neutral / watch");
+  assert.equal(owes(1000, 450, 1000, 510).label.name, "Warning");
+});
+test("what it owes: negative equity is Warning, with the subtraction written clearly", () => {
+  const c = owes(1000, -40, 1000, 10);
+  assert.equal(c.label.name, "Warning"); assert.match(c.label.reason, /owes more than it owns/);
+  assert.equal(c.rows.find(r => r.item === "Liabilities").formula[0], "1,000 − (−40) = 1,040");
+});
+
+const roa = (niNow, niBefore, info) => cardsOf({ sales: [1000, 1000], netincome: [niNow, niBefore], assets: [1000, 1000] }, info)["Return on assets"];
+test("return on assets: up more than 1 point Good, down more than 1 Warning, else Neutral / watch", () => {
+  assert.equal(roa(180, 150).label.name, "Good");
+  assert.equal(roa(150, 180).label.name, "Warning");
+  assert.equal(roa(155, 150).label.name, "Neutral / watch");
+});
+test("return on assets: a loss is Warning", () => assert.equal(roa(-20, 10).label.name, "Warning"));
+test("a bank: return on assets applies with a finer threshold; the other three cash and debt cards do not apply", () => {
+  const bank = { sic: "6021", sicDescription: "National Commercial Banks" };
+  assert.equal(roa(13, 10, bank).label.name, "Good");   // up 0.3 points
+  assert.equal(roa(13, 10).label.name, "Neutral / watch");
+  const c = cardsOf({ sales: [1000, 1000], ocf: [10, 10], netincome: [13, 10], capex: [5, 5], assets: [1000, 1000], equity: [90, 90] }, bank);
+  for (const s of ["Cash from profit", "Free cash flow", "What it owes"]) assert.equal(c[s].state, "Doesn't apply");
+});
+test("there are twelve cards: the eight signals, then four on cash and debt", () => {
+  const cards = buildCards(company({ sales: [1100, 1000] }), "1").cards;
+  assert.equal(cards.length, 12);
+  assert.deepEqual([...new Set(cards.map(c => c.deck))], ["The eight signals", "Cash and debt"]);
+  assert.deepEqual(cards.slice(8).map(c => c.signal), ["Cash from profit", "Free cash flow", "What it owes", "Return on assets"]);
+});
+test("negative amounts are written with a proper minus sign", () => {
+  assert.equal(cardsOf({ sales: [1000, 1000], ocf: [-3, 2], capex: [7, 5] })["Free cash flow"].rows[0].this_year, "−3");
 });
 
 // ---------- Names and tickers ----------
