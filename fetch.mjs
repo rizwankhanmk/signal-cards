@@ -68,6 +68,7 @@ const fyLabel = r => `FY${r.end.slice(0, 4)}`;
 const round1 = x => Math.round(x * 10) / 10;
 const UNIT = 1000; // the 10-K prints USD thousands, so we show the formula the same way
 const fmt = n => Math.round(n / UNIT).toLocaleString("en-US");
+const one = x => x.toFixed(1); // always one decimal: 11.0, not 11
 
 function describe(name, picked, statement) {
   const [thisYear, lastYear] = picked.rows;
@@ -79,7 +80,7 @@ function describe(name, picked, statement) {
     this_year: { fy: fyLabel(thisYear), end: thisYear.end, usd: thisYear.val, accn: thisYear.accn, filed: thisYear.filed, url: filingUrl(thisYear) },
     last_year: { fy: fyLabel(lastYear), end: lastYear.end, usd: lastYear.val, accn: lastYear.accn, filed: lastYear.filed, url: filingUrl(lastYear) },
     unit: "USD thousands",
-    formula: `(${fmt(thisYear.val)} − ${fmt(lastYear.val)}) ÷ ${fmt(lastYear.val)} × 100 = ${growth}%`,
+    formula: `(${fmt(thisYear.val)} − ${fmt(lastYear.val)}) ÷ ${fmt(lastYear.val)} × 100 = ${one(growth)}%`,
     growth_pct: growth,
   };
 }
@@ -101,11 +102,11 @@ const I = describe("Inventory", inventory, "Balance sheet");
 const ABOUT_SAME_PP = 5; // "about the same rate" means within this many percentage points
 function label(s, i) {
   const gap = round1(i - s); // positive = item grew faster than sales
-  const pct = x => `${Math.abs(x)}%`;
+  const pct = x => `${one(Math.abs(x))}%`;
   if (s >= 0) {
     if (i <= 0) return { name: "Most favourable", reason: `Sales rose ${pct(s)}, inventory ${i < 0 ? "fell " + pct(i) : "stayed flat"}.` };
     if (i < s) return { name: "Good", reason: `Both rose, but inventory (${pct(i)}) grew slower than sales (${pct(s)}).` };
-    return { name: "Warning", reason: `Inventory grew ${pct(i)}, sales grew ${pct(s)}. Stock is piling up ${gap > 0 ? gap + " percentage points faster than" : "as fast as"} it sells.` };
+    return { name: "Warning", reason: `Inventory grew ${pct(i)}, sales grew ${pct(s)}. Stock is piling up ${gap > 0 ? one(gap) + " percentage points faster than" : "as fast as"} it sells.` };
   }
   if (i >= 0) return { name: "Risk rising", reason: `Sales fell ${pct(s)} while inventory ${i > 0 ? "rose " + pct(i) : "did not fall"}.` };
   if (Math.abs(gap) <= ABOUT_SAME_PP) return { name: "Neutral / watch", reason: `Both fell at about the same rate: sales ${pct(s)}, inventory ${pct(i)}.` };
