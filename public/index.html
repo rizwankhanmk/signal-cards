@@ -9,11 +9,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* Three greys, light and dark. The fun is in the words, never in clutter. */
-  :root { --bg: #ffffff; --surface: #f5f5f7; --text: #1d1d1f; --muted: #6e6e73; color-scheme: light; }
+  /* Plus three quiet colours for the labels: good, watch, warning. Always paired with a shape. */
+  :root { --bg: #ffffff; --surface: #f5f5f7; --text: #1d1d1f; --muted: #6e6e73; --good: #2f9e6e; --watch: #c58a12; --warn: #d24b3e; color-scheme: light; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #1d1d1f; --surface: #2a2a2d; --text: #f5f5f7; --muted: #a1a1a6; color-scheme: dark; }
+    :root:not([data-theme="light"]) { --bg: #1d1d1f; --surface: #2a2a2d; --text: #f5f5f7; --muted: #a1a1a6; --good: #57c990; --watch: #e6b24a; --warn: #f0776c; color-scheme: dark; }
   }
-  :root[data-theme="dark"] { --bg: #1d1d1f; --surface: #2a2a2d; --text: #f5f5f7; --muted: #a1a1a6; color-scheme: dark; }
+  :root[data-theme="dark"] { --bg: #1d1d1f; --surface: #2a2a2d; --text: #f5f5f7; --muted: #a1a1a6; --good: #57c990; --watch: #e6b24a; --warn: #f0776c; color-scheme: dark; }
 
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -52,6 +53,7 @@
   .hits li { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 9px 14px; min-height: 44px; border-radius: 12px; cursor: pointer; font-size: 16px; }
   .hits li[aria-selected="true"], .hits li:hover { background: var(--surface); }
   .hits .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hits .aka { color: var(--muted); font-size: 14px; margin-left: .35em; }
   .hits .t { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   .tries { margin: 22px 0 0; font-size: 15px; color: var(--muted); display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
   .chip { background: none; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 999px; padding: 6px 16px; min-height: 44px; cursor: pointer; font-size: 15px; }
@@ -66,6 +68,10 @@
 
   /* The small mark beside a label: hollow = good, half = watch, filled = warning. Shape, not colour. */
   .mark { display: inline-block; width: .62em; height: .62em; border-radius: 50%; border: 1.5px solid currentColor; margin-right: .5em; vertical-align: .02em; }
+  .mark.good { color: var(--good); } .mark.watch { color: var(--watch); } .mark.warn { color: var(--warn); }
+  .tile.tone-good { background: color-mix(in srgb, var(--good) 9%, var(--surface)); }
+  .tile.tone-watch { background: color-mix(in srgb, var(--watch) 9%, var(--surface)); }
+  .tile.tone-warn { background: color-mix(in srgb, var(--warn) 9%, var(--surface)); }
   .mark.watch { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
   .mark.warn { background: currentColor; }
 
@@ -359,7 +365,7 @@
     const c = d.cards[n - 1], g = guesses(d), ch = checks(d), down = faceDown(d, n);
     const result = !canGuess(c) || down || g[n] === "skip" ? "" : g[n] === c.tone ? "You caught it" : `You said ${TONES[g[n]]}`;
     return `
-      <button class="tile${c.label ? "" : " empty"}${down ? " down" : ""}${d === data && n === tileToFlip ? " flipped" : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}">
+      <button class="tile${c.label ? "" : " empty"}${down ? " down" : c.tone ? " tone-" + esc(c.tone) : ""}${d === data && n === tileToFlip ? " flipped" : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}">
         <span class="t-top"><span class="t-name">${esc(W(c, "signal"))}</span>${c.rows.length && !down ? `<span class="badge">${ch[n] ? "Checked" : "Draft"}</span>` : ""}</span>
         <span class="t-big${c.big.length >= 8 ? " long" : ""}">${esc(c.big)}</span>
         <span class="t-small">${esc(c.small)}</span>
@@ -522,7 +528,7 @@
     const close = () => { hits = []; picked = -1; list.hidden = true; input.setAttribute("aria-expanded", "false"); };
     const paint = () => {
       list.hidden = !hits.length; input.setAttribute("aria-expanded", String(!!hits.length));
-      list.innerHTML = hits.map((h, i) => `<li role="option" id="${list.id}-${i}" data-i="${i}" aria-selected="${i === picked}"><span class="n">${esc(h.name)}</span><span class="t">${esc(h.ticker)}</span></li>`).join("");
+      list.innerHTML = hits.map((h, i) => `<li role="option" id="${list.id}-${i}" data-i="${i}" aria-selected="${i === picked}"><span class="n">${esc(h.name)}${h.aka ? ` <span class="aka">${esc(h.aka)}</span>` : ""}</span><span class="t">${esc(h.ticker)}</span></li>`).join("");
       if (picked >= 0) input.setAttribute("aria-activedescendant", `${list.id}-${picked}`); else input.removeAttribute("aria-activedescendant");
     };
     const choose = h => { close(); input.blur(); onPick(h.ticker); };
