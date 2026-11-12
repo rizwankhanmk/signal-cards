@@ -103,6 +103,10 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   three marks. It is an original drawing. A phone keeps the old icon until the app is removed from the home
   screen and added again.
 - Tapping the name swaps its words, "Signal Cards" to "Card Signals" and back, and takes you home.
+- On a phone the numbers table stacks: the item and its two years on one line, the formula below, the source
+  under that, so nothing scrolls sideways. A line above it gives the unit as printed in the filing.
+- The big number carries a caption saying what it is ("Inventory growth"). After a missed guess, a box shows
+  the rule row that decided the label.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
