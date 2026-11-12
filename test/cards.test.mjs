@@ -258,6 +258,17 @@ test("a bank's return on assets rule shows its finer threshold", () => {
   assert.match(roa(180, 150).rule.rows[1][0], /1 point on/);
 });
 
+test("every card with a number says what the number is, in both wordings", () => {
+  const cards = cardsOf({ sales: [1100, 1000], cost: [500, 480], inventory: [520, 500], receivables: [300, 250], sga: [200, 190], rnd: [80, 87], capex: [70, 40],
+    tax: [120, 110], pretax: [500, 480], ocf: [400, 380], netincome: [380, 370], assets: [5000, 4800], equity: [2500, 2400] });
+  for (const c of Object.values(cards)) {
+    if (c.big === "—") continue;
+    assert.ok(c.caption && c.caption_plain, `${c.signal} has no caption`);
+  }
+  assert.equal(cards["Inventory"].caption, "Inventory growth"); assert.equal(cards["Inventory"].caption_plain, "Unsold stock growth");
+  assert.equal(cards["Gross profit"].caption, "Gross margin"); assert.equal(cards["Return on assets"].caption, "Return on assets");
+});
+
 // ---------- The page and the data must agree ----------
 test("the page's PAGE_VERSION matches the data VERSION", async () => {
   const { VERSION } = await import("../sec.mjs");

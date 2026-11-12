@@ -58,6 +58,7 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - Catch the flag: tiles start face down, showing only the two numbers. Tap one, guess Good, Watch or Warning,
   and it flips. "Reveal all" flips the rest without scoring; "Play again" turns them back over.
 - Draft: every card is Draft until you tick "I checked these numbers in the filing myself". Then it says Checked.
+  The tiles screen shows a tick on each checked card and one line under the tiles: "Draft. 2 of 11 cards checked".
 - Guesses last for one sitting: the cards are face down again when you close the tab or a new day starts.
   Ticks and the two switches are remembered in your browser for good, per company and fiscal year.
 - Accounting / Plain English: one switch swaps the wording everywhere ("Accounts receivable" becomes "Unpaid customer bills").
@@ -84,9 +85,12 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   home screen and in Settings shows them again.
 - Settings sit behind one button in the top bar: wording, which reader's line to show, and appearance (auto,
   light, dark). The sun or moon beside it switches light and dark in one tap.
-- The home screen lists the last few companies you opened, under "Recent".
+- The home screen lists the last few companies you opened, under "Recent". Once there is a Recent list it
+  stands in place of the suggestions; "Something new" brings them back.
+- On a company's screen the search box is empty and says "Search another company".
 - While a company loads, grey placeholder tiles stand where the cards will be.
-- Compare is a button under the company's name. It opens a box to pick the second company.
+- Compare is a button under the company's name. It opens a box to pick the second company. The comparison is one
+  short row per card: each company's number and label side by side. Tap a side to open that card.
 - A revealed card shows the label, the line and the reader's line. The proof is folded into rows you tap to
   open: The numbers, What an analyst would quote, The last few years, and How this label is decided (the rule
   table with the row that applied marked). The rows you open stay open on the next card.
@@ -103,6 +107,10 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   three marks. It is an original drawing. A phone keeps the old icon until the app is removed from the home
   screen and added again.
 - Tapping the name swaps its words, "Signal Cards" to "Card Signals" and back, and takes you home.
+- On a phone the numbers table stacks: the item and its two years on one line, the formula below, the source
+  under that, so nothing scrolls sideways. A line above it gives the unit as printed in the filing.
+- The big number carries a caption saying what it is ("Inventory growth"). After a missed guess, a box shows
+  the rule row that decided the label.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 

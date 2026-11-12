@@ -291,6 +291,27 @@
   .seg button { position: relative; border: 0; background: none; padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
   .seg button::after { content: ""; position: absolute; inset: -4px 0; } /* a taller area to tap */
   .seg button[aria-pressed="true"] { background: var(--bg); color: var(--text); box-shadow: 0 1px 3px color-mix(in srgb, #000 14%, transparent); }
+  .hero .cap { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: -6px 0 10px; }
+  .hero .why { font-size: 16px; max-width: 40ch; margin: 22px auto 0; padding: 12px 16px; border-radius: 14px; background: var(--surface); text-wrap: balance; }
+  .hero .why small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .unit { font-size: 13px; margin: 0 0 6px; }
+  /* On a phone, a table row stacks: the item and its two numbers on one line, the formula below it. */
+  @media (max-width: 699px) {
+    table.stack, table.stack tbody { display: block; }
+    table.stack tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 16px; align-items: baseline; padding: 10px 0;
+                     border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
+    table.stack th, table.stack td { border: 0; padding: 0; }
+    table.stack th:nth-child(n+4) { display: none; }
+    table.stack td.f { grid-column: 1 / -1; white-space: normal; font-size: 14px; color: var(--muted); padding-top: 6px; overflow-wrap: anywhere; }
+    table.stack td.f:empty { display: none; }
+    table.stack td.src { grid-column: 1 / -1; font-size: 13px; padding-top: 4px; }
+    table.stack td.num { min-width: 4.2em; }
+    /* The other tables (the trend, the rules) stay as tables but tighten up so they fit the screen */
+    .fold-body table:not(.stack) { font-size: 14px; }
+    .fold-body table:not(.stack) th, .fold-body table:not(.stack) td { padding-right: 8px; }
+    .fold-body table:not(.stack) th { white-space: normal; font-size: 12px; }
+    .fold-body td.lab { white-space: normal; }
+  }
   .hero .next { font-size: 17px; max-width: 40ch; margin: 30px auto 0; text-wrap: balance; }
   .hero .next small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 
@@ -302,10 +323,19 @@
   .cmp-head { position: sticky; top: 60px; z-index: 2; background: var(--bg); padding: 10px 0 12px; }
   .cmp-head b { display: block; font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
   .cmp-head span { font-size: 13px; color: var(--muted); }
-  .cmp h3 { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 26px 0 10px; }
-  .cmp .tile { min-height: 150px; }
-  .cmp .t-name { display: none; }
-  .cmp .t-top { justify-content: flex-end; min-height: 1em; }
+  .cmp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; padding: 12px 0; border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
+  .cmp-row h3 { grid-column: 1 / -1; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  .cmp-cell { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 0 10px; text-align: left; font: inherit; color: inherit; background: none; border: 0; border-radius: 12px; padding: 6px 8px; margin: 0 -8px; cursor: pointer; min-height: 44px; }
+  .cmp-cell:hover { background: var(--surface); }
+  .cmp-cell .c-big { font-size: 22px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .cmp-cell .c-label { font-size: 14px; font-weight: 600; white-space: nowrap; }
+  .cmp-cell .c-small { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+  .cmp-cell.down .c-label, .cmp-cell.none .c-label { color: var(--muted); font-weight: 500; }
+  .cmp-cell.none { display: block; }
+  @media (max-width: 420px) { .cmp-cell { grid-template-columns: 1fr; } .cmp-cell .c-big { font-size: 20px; } }
+  .quiet.center { text-align: center; margin-top: 22px; }
+  .quiet.center b { font-weight: 600; color: var(--text); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .banner { text-align: center; font-size: 15px; padding: 14px 18px; border-radius: 16px; background: var(--surface); margin: 0 0 18px; }
   .banner b { font-weight: 600; }
   @media (max-width: 420px) { .cmp-head, .cmp-two { gap: 10px; } }
@@ -415,7 +445,7 @@
         <button class="go">Read</button>
       </form>
       <p class="tries" id="recent" hidden></p>
-      <p class="tries"><span id="trylabel">Try</span>
+      <p class="tries" id="tryrow"><span id="trylabel">Try</span>
         <span id="picks">
           <button class="chip" type="button" data-try="AAPL">Apple</button>
           <button class="chip" type="button" data-try="COST">Costco</button>
@@ -442,6 +472,7 @@
       </form>
       <p class="score" id="score" hidden></p>
       <div class="grid" id="grid"></div>
+      <p class="quiet center" id="checkline" hidden></p>
       <p class="tries after" id="after" hidden></p>
       <div class="cmp" id="compare" hidden></div>
       <p class="key" id="key" hidden>
@@ -490,7 +521,7 @@
   // "Tap" on a touch screen, "Click" with a mouse.
   const TAP = matchMedia("(hover: none)").matches ? "Tap" : "Click";
   // The data shape this page understands. Must match VERSION in sec.mjs; a test checks that it does.
-  const PAGE_VERSION = 12;
+  const PAGE_VERSION = 13;
 
   // ---------- The headline: one line for each day of the week ----------
   const MOTTOS = [
@@ -606,11 +637,15 @@
     const list = [{ ticker: d.ticker, label: shortName(d.company) }, ...recents().filter(c => c.ticker !== d.ticker)].slice(0, 6);
     try { localStorage.setItem("sc:recent", JSON.stringify(list)); } catch {}
   };
+  // Once you have read a company, "Recent" stands where the suggestions were; one link brings them back.
+  let wantNew = false;
   const paintRecent = () => {
     const list = recents().slice(0, 4);
     $("recent").hidden = !list.length;
-    $("recent").innerHTML = list.length ? `Recent ${list.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}` : "";
+    $("recent").innerHTML = list.length ? `Recent ${list.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}${wantNew ? "" : ` <button class="linkish" type="button" id="newones">Something new</button>`}` : "";
+    $("tryrow").hidden = !!list.length && !wantNew;
   };
+  $("recent").addEventListener("click", e => { if (e.target.closest("#newones")) { wantNew = true; paintRecent(); } });
   paintRecent();
 
   // ---------- What this browser remembers ----------
@@ -706,7 +741,7 @@
   const fail = (title, why) => {
     data = other = null;
     $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false;
-    $("grid").innerHTML = ""; $("grid").hidden = false; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("after").hidden = true;
+    $("grid").innerHTML = ""; $("grid").hidden = false; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("after").hidden = true; $("checkline").hidden = true;
     $("form2").hidden = true; $("headbtns").hidden = true; $("source").textContent = "";
     $("company").textContent = title; $("meta").textContent = why; $("headnote").hidden = true;
   };
@@ -739,7 +774,7 @@
     const result = !canGuess(c) || down || g[n] === "skip" ? "" : g[n] === c.tone ? "You caught it" : `You said ${TONES[g[n]]}`;
     return `
       <button class="tile${c.label ? "" : " empty"}${down ? " down" : c.tone ? " tone-" + esc(c.tone) : ""}${d === data && n === tileToFlip ? " flipped" : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}">
-        <span class="t-top"><span class="t-name">${esc(W(c, "signal"))}</span>${c.rows.length && !down ? `<span class="badge">${ch[n] ? "Checked" : "Draft"}</span>` : ""}</span>
+        <span class="t-top"><span class="t-name">${esc(W(c, "signal"))}</span>${c.rows.length && !down ? (ch[n] ? `<span class="badge" title="You checked these numbers in the filing">✓<span class="sr"> Checked</span></span>` : "") : ""}</span>
         <span class="t-big${c.big.length >= 8 ? " long" : ""}">${esc(c.big)}</span>
         <span class="t-small">${esc(c.small)}</span>
         <span class="t-label">${down ? `${TAP} to guess` : mark(c.tone) + esc(c.label ? c.label.name : c.state)}</span>
@@ -759,7 +794,7 @@
     document.body.classList.toggle("has-tabbar", !!ticker);
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
-      $("ask").hidden = false; $("overview").hidden = $("detail").hidden = true; $("source").textContent = ""; $("q").value = "";
+      $("ask").hidden = false; $("overview").hidden = $("detail").hidden = true; $("source").textContent = ""; $("q").value = ""; $("q").placeholder = "Company or ticker";
       paintRecent();
       return;
     }
@@ -775,7 +810,7 @@
       }
     }
     const d = data, T = d.fiscal.this_year, L = d.fiscal.last_year;
-    $("q").value = d.company;
+    $("q").value = ""; $("q").placeholder = "Search another company";   // the name is already the heading below
     remember(d);
     $("source").innerHTML = other && !card ? `${sourceLine(d)}<br>${sourceLine(other)}` : sourceLine(d);
     $("ask").hidden = !!card; $("overview").hidden = !!card; $("detail").hidden = !card;
@@ -786,7 +821,7 @@
     $("headbtns").hidden = false; $("form2").hidden = !cmpOpen;   // Compare sits under the name; its box opens on a tap
     $("cmpbtn").textContent = other ? "Compare with someone else" : "Compare";
     $("grid").hidden = !!other; $("compare").hidden = !other; $("stop").hidden = !other;
-    if (other) $("after").hidden = true;
+    if (other) $("after").hidden = $("checkline").hidden = true;
     if (other) return drawCompare(d, other);
 
     document.title = `${d.ticker} · Signal Cards`;
@@ -803,10 +838,22 @@
         ${empty.length ? `<p class="quiet">${empty.length === 1 ? "One card has" : `${empty.length} cards have`} nothing to show here: ${names}.</p>` : ""}`;
     }).join("");
     tileToFlip = 0;
+    const liveN = live(d), ticked = liveN.filter(n => checks(d)[n]).length;
+    $("checkline").hidden = false;
+    $("checkline").innerHTML = ticked === liveN.length ? `✓ All ${liveN.length} cards checked against the filing.`
+      : `<b>Draft.</b> ${ticked} of ${liveN.length} cards checked against the filing. Open a card and tick it once you have checked its numbers.`;
     drawScore(d);
   }
 
-  // Two companies side by side, signal by signal.
+  // Two companies side by side, signal by signal: one row per card, a small cell for each company.
+  function cell(d, n) {
+    const c = d.cards[n - 1], down = faceDown(d, n);
+    if (!c.rows.length) return `<button class="cmp-cell none" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}"><span class="c-label">${esc(c.state)}</span></button>`;
+    return `<button class="cmp-cell${down ? " down" : c.tone ? " tone-" + esc(c.tone) : ""}" type="button" data-card="${n}" data-ticker="${esc(d.ticker)}" aria-label="${esc(d.company)}: ${esc(W(c, "signal"))}">
+      <span class="c-big">${esc(c.big)}</span>
+      <span class="c-label">${down ? `${TAP} to guess` : mark(c.tone) + esc(c.label ? c.label.name : c.state)}${checks(d)[n] ? " ✓" : ""}</span>
+      <span class="c-small">${esc(c.small)}</span></button>`;
+  }
   function drawCompare(a, b) {
     document.title = `${a.ticker} vs ${b.ticker} · Signal Cards`;
     $("company").textContent = `${a.company} vs ${b.company}`;
@@ -819,7 +866,7 @@
     if (a.fiscal.this_year.end !== b.fiscal.this_year.end) notes.push(`<p class="banner">Their years end on different dates: ${esc(day(a.fiscal.this_year.end))} and ${esc(day(b.fiscal.this_year.end))}. The two sides cover different twelve months.</p>`);
     $("compare").innerHTML = `${notes.join("")}
       <div class="cmp-head">${head(a)}${head(b)}</div>
-      ${a.cards.map((c, i) => `${i && c.deck !== a.cards[i - 1].deck ? `<h3 class="deckhead">${esc(c.deck)}</h3>` : ""}<h3>${esc(W(c, "signal"))}</h3><div class="cmp-two">${tile(a, i + 1)}${b.cards[i] ? tile(b, i + 1) : ""}</div>`).join("")}`;
+      ${a.cards.map((c, i) => `${i && c.deck !== a.cards[i - 1].deck ? `<h3 class="deckhead">${esc(c.deck)}</h3>` : ""}<div class="cmp-row"><h3>${esc(W(c, "signal"))}</h3>${cell(a, i + 1)}${b.cards[i] ? cell(b, i + 1) : "<span></span>"}</div>`).join("")}`;
     tileToFlip = 0;
   }
 
@@ -899,7 +946,7 @@
       </details>`;
     // What an analyst would quote: one or two ratios beside the growth rate.
     const ratios = c.ratios?.length ? fold("ratios", "What an analyst would quote", `
-        <div class="scroll"><table>
+        <div class="scroll"><table class="stack">
           <tr><th>Ratio</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th></tr>
           ${c.ratios.map(r => `<tr><td>${esc(W(r, "name"))}</td><td class="num">${esc(r.this_year)}</td><td class="num">${esc(r.last_year)}</td><td class="f">${r.formula.map(esc).join("<br>")}</td></tr>`).join("")}
         </table></div>
@@ -920,7 +967,7 @@
         <td class="num">${inFiling(r.this_year, r.this_link)}</td>
         <td class="num">${inFiling(r.last_year, r.last_link)}</td>
         <td class="f">${r.formula.map(esc).join("<br>")}</td>
-        <td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
+        <td class="src">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
       </tr>`).join("");
     // The trend table: the last column is a label, the rest are numbers.
     const trend = c.trend ? fold("trend", `The last ${c.trend.rows.length} years`, `
@@ -931,6 +978,7 @@
         <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>`) : "";
     const down = faceDown(d, n), said = guesses(d)[n], checked = !!checks(d)[n];
     const verdict = !canGuess(c) || !said || said === "skip" ? "" : said === c.tone ? "You caught it." : `You said ${TONES[said]}. Missed this one.`;
+    const missed = canGuess(c) && said && said !== "skip" && said !== c.tone; // a wrong guess: show the rule that applied
     const nextLabel = !next ? "Finish" : next.deck !== c.deck ? next.deck : W(next, "signal"); // where Next leads
     const steps = `
       <div class="steps">
@@ -951,7 +999,8 @@
       </div>
       ${swiped ? "" : `<p class="swipe-hint">‹ Swipe left or right for the next card ›</p>`}`;
     const numbers = `
-        <p class="kicker">${esc(W(c, "signal"))} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
+        <p class="kicker">${c.caption ? "" : `${esc(W(c, "signal"))} · `}${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
+        ${c.caption ? `<p class="cap">${esc(W(c, "caption"))}</p>` : ""}
         <p class="big">${esc(c.big)}</p>
         <p class="under">${c.measure ? `${esc(c.measure)} · ` : ""}${esc(c.small)}</p>`;
     $("detail").classList.toggle("fresh", !down && n === justFlipped); // play the reveal once, right after a guess
@@ -972,6 +1021,7 @@
           <p class="verdict">${esc(verdict)}</p>
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
+          ${missed && c.rule?.hit >= 0 ? `<p class="why"><small>Why it is ${esc(c.label.name)}</small>${esc(c.rule.rows[c.rule.hit][0].replace(/the item/g, W(c, "signal").toLowerCase()))}.</p>` : ""}
           ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
           ${place >= 0 ? `<button class="pill nextpill" type="button" data-forward>${next ? "Next: " : ""}${esc(nextLabel)} →</button>` : ""}
         </div>
@@ -980,7 +1030,8 @@
       ${c.rows.length ? `
       <div class="folds">
       ${fold("numbers", `The numbers${checked ? " · checked" : ""}`, `
-        <div class="scroll"><table>
+        <p class="unit muted">In ${esc(d.unit)}, as printed in the filing.</p>
+        <div class="scroll"><table class="stack">
           <tr><th>Item</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th><th>Source</th></tr>
           ${rows}
         </table></div>
