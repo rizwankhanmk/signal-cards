@@ -111,6 +111,13 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   under that, so nothing scrolls sideways. A line above it gives the unit as printed in the filing.
 - The big number carries a caption saying what it is ("Inventory growth"). After a missed guess, a box shows
   the rule row that decided the label.
+- Your best first-try score for each company is kept in this browser and shown on the tiles screen, the end
+  screen and the Recent list. "Retry the ones you missed" turns only those cards face down again; retries do
+  not change the best score.
+- Keyboard and screen readers: a "Skip to the content" link, a heading on every card, the answer read out
+  after a guess, and 1, 2, 3 to guess Good, Watch, Warning (arrows still move between cards).
+- Offline: `public/sw.js` keeps the page and the last 30 companies you read. The network always comes first;
+  the saved copy is used only when there is no connection, and the page says so.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
