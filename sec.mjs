@@ -7,6 +7,9 @@ import { buildCards } from "./signals.mjs";
 const VERSION = 7;                       // bump when the saved shape changes, so old saved files are refetched
 const TICKER_LIST = "https://www.sec.gov/files/company_tickers.json";
 const HOURS = 3_600_000;
+// Where saved copies go. On your computer: the data/ folder. On Vercel the project folder is
+// read-only, so they go in /tmp, which is wiped now and then. They are only a speed-up, so that is fine.
+const DIR = process.env.VERCEL ? "/tmp/signal-cards" : "data";
 
 // An error whose message is safe and useful to show to the person using the app.
 export class Friendly extends Error { constructor(msg, status = 400) { super(msg); this.status = status; } }
@@ -36,7 +39,9 @@ export function tidyName(name, ticker) {
 }
 
 async function getJson(url, UA) {
-  if (!UA) throw new Friendly("Missing SEC_USER_AGENT. Copy .env.example to .env and fill it in.", 500);
+  if (!UA) throw new Friendly(process.env.VERCEL
+    ? "Missing SEC_USER_AGENT. Add it under Environment Variables in the Vercel project settings, then redeploy."
+    : "Missing SEC_USER_AGENT. Copy .env.example to .env and fill it in.", 500);
   let res;
   try { res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Encoding": "gzip, deflate" } }); }
   catch { throw new Friendly("Could not reach the SEC. Check your internet connection and try again.", 502); }
@@ -53,8 +58,10 @@ async function readSaved(file, maxAgeHours) {
   return null;
 }
 async function save(file, obj) {
-  await mkdir("data", { recursive: true });
-  await writeFile(file, JSON.stringify(obj, null, 2));
+  try {
+    await mkdir(DIR, { recursive: true });
+    await writeFile(file, JSON.stringify(obj, null, 2));
+  } catch {} // a saved copy is a speed-up, never a requirement
 }
 
 // The SEC's list of every US-listed company: ticker, company id (CIK) and name.
@@ -62,7 +69,7 @@ async function save(file, obj) {
 let memo = null;
 async function companies(UA) {
   if (memo && Date.now() - new Date(memo.fetched_at) < 24 * 7 * HOURS) return memo.list;
-  const file = "data/_tickers.json";
+  const file = `${DIR}/_tickers.json`;
   let saved = await readSaved(file, 24 * 7);
   if (!saved) {
     const raw = await getJson(TICKER_LIST, UA);
@@ -99,7 +106,7 @@ export async function search(rawQuery, UA, limit = 8) {
 // The eight cards for one ticker. Uses the saved copy if it is under a day old, unless fresh is true.
 export async function cardsFor(rawTicker, UA, { fresh = false } = {}) {
   const ticker = cleanTicker(rawTicker);
-  const file = `data/${ticker}.json`;
+  const file = `${DIR}/${ticker}.json`;
   if (!fresh) {
     const saved = await readSaved(file, 24);
     if (saved) return saved;

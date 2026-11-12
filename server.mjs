@@ -1,5 +1,6 @@
-// A tiny local web server. No packages needed.
-// It serves exactly three things: index.html, /api/cards?ticker=XXXX and /api/search?q=words. Nothing else, so .env is never exposed.
+// A tiny local web server, for running the app on your own computer. No packages needed.
+// Online, Vercel does this job instead: it serves public/ and runs the two files in api/.
+// It serves exactly three things: public/index.html, /api/cards?ticker=XXXX and /api/search?q=words. Nothing else, so .env is never exposed.
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
 import { cardsFor, search, Friendly } from "./sec.mjs";
@@ -11,7 +12,7 @@ createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (url.pathname === "/" || url.pathname === "/index.html") {
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    return res.end(await readFile("index.html"));
+    return res.end(await readFile("public/index.html"));
   }
   if (url.pathname === "/api/cards" || url.pathname === "/api/search") {
     try {

@@ -18,10 +18,22 @@ How it works:
 - Numbers show in USD millions when every figure is a whole million, otherwise in USD thousands, to match the 10-K.
 - Only companies that file a 10-K are covered. Foreign companies listed in the US file a different form.
 
+## Put it online (Vercel)
+
+The app runs on Vercel with no build step: Vercel serves `public/` and runs the two files in `api/`.
+
+1. In Vercel, import this GitHub repository. Framework preset: Other. Leave the build settings empty.
+2. Add one environment variable, `SEC_USER_AGENT`, with the same value as in your `.env`
+   (a name and a contact email). It is set in Vercel, never committed.
+3. Deploy. Vercel redeploys on every push to `main`.
+
+Online, each company's answer is kept by Vercel's network for a day, so the SEC is asked about once per
+company per day. `server.mjs` is only for running the app on your own computer.
+
 ## Look and voice
 
 - Calm layout: one idea per screen, one big number, lots of white space. Greys `#1d1d1f`, `#6e6e73`, `#f5f5f7`. Inter font.
-- The home screen headline changes with the day of the week. The seven lines are in `MOTTOS` in `index.html`.
+- The home screen headline changes with the day of the week. The seven lines are in `MOTTOS` in `public/index.html`.
 - Light and dark: follows your computer's setting; the button in the top corner overrides it.
 - Type a ticker, see the company and fiscal year, then eight tiles. Tap a tile to open that card on its own screen.
   Arrow keys move between cards, Esc goes back to the eight.
