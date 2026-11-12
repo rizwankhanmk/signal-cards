@@ -55,7 +55,9 @@
   .hits .t { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
   .tries { margin: 22px 0 0; font-size: 15px; color: var(--muted); display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
   .chip { background: none; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 15px; }
-  .chip:hover { background: var(--surface); }
+  button.chip:hover { background: var(--surface); }
+  .tries.soon { margin-top: 12px; font-size: 14px; }
+  .soon .chip { border-style: dashed; cursor: default; font-size: 14px; color: var(--muted); }
 
   /* Company heading */
   .head { text-align: center; padding: 0 0 36px; }
@@ -137,6 +139,10 @@
         <button class="chip" type="button" data-try="COST">Costco</button>
         <button class="chip" type="button" data-try="WDFC">WD-40</button>
         <button class="chip" type="button" data-try="JPM">JPMorgan</button>
+      </p>
+      <p class="tries soon">Coming soon
+        <span class="chip">Singapore Airlines</span>
+        <span class="chip">Tata</span>
       </p>
     </section>
 
