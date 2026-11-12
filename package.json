@@ -1,0 +1,10 @@
+{
+  "name": "signal-cards",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fetch": "node --env-file=.env fetch.mjs",
+    "start": "node server.mjs"
+  }
+}
