@@ -59,10 +59,10 @@
   .chip { background: none; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 999px; padding: 6px 16px; min-height: 44px; cursor: pointer; font-size: 15px; }
   button.chip:hover { background: var(--surface); }
   .tries .when { color: var(--muted); font-size: 13px; margin-left: .35em; }
-  #fresh { margin-top: 12px; }
-  @media (max-width: 480px) { #fresh .chip:nth-of-type(n+5) { display: none; } } /* four is plenty on a phone */
-  .tries.soon { margin-top: 12px; font-size: 14px; }
-  .soon .chip { border-style: dashed; cursor: default; font-size: 14px; color: var(--muted); min-height: 0; }
+  #picks { display: contents; }
+  .shuffle { font-size: 15px; padding: 6px 8px; }
+  .soonline { margin: 14px 0 0; font-size: 13px; color: var(--muted); }
+  .ask.small .soonline { display: none; }
 
   /* Company heading */
   .head { text-align: center; padding: 0 0 36px; }
@@ -238,17 +238,15 @@
         </div>
         <button class="go">Read</button>
       </form>
-      <p class="tries">Try
-        <button class="chip" type="button" data-try="AAPL">Apple</button>
-        <button class="chip" type="button" data-try="COST">Costco</button>
-        <button class="chip" type="button" data-try="WDFC">WD-40</button>
-        <button class="chip" type="button" data-try="NKE">Nike</button>
+      <p class="tries"><span id="trylabel">Try</span>
+        <span id="picks">
+          <button class="chip" type="button" data-try="AAPL">Apple</button>
+          <button class="chip" type="button" data-try="COST">Costco</button>
+          <button class="chip" type="button" data-try="WDFC">WD-40</button>
+        </span>
+        <button class="ghost shuffle" type="button" id="shuffle" aria-label="Show three other companies">↻ Shuffle</button>
       </p>
-      <p class="tries" id="fresh" hidden></p>
-      <p class="tries soon">Coming soon
-        <span class="chip">Singapore Airlines</span>
-        <span class="chip">Tata</span>
-      </p>
+      <p class="soonline">Coming soon: Singapore Airlines, Tata</p>
     </section>
 
     <section id="overview" hidden>
@@ -300,13 +298,31 @@
   ];
   $("motto").textContent = MOTTOS[new Date().getDay()];
 
-  // ---------- Home screen: big companies whose annual report just landed ----------
-  // Fresh numbers are the best ones to practise on. If this fails, the home screen simply does without it.
+  // ---------- Home screen: three companies to try, and a Shuffle button for three more ----------
+  // The pool is a few steady examples plus the big companies whose annual report landed most recently
+  // (fresh numbers are the best ones to practise on). If the fresh list fails, the steady ones still work.
   const shortName = n => n.replace(/[,.]/g, "").replace(/\s+(Inc|Corp|Corporation|Co|Company|Ltd|plc|Holdings|Group|& Co|\/[A-Z]+\/?)$/gi, "").replace(/\s+(Inc|Corp|Co|& Co)$/i, "").trim();
+  let pool = [{ ticker: "AAPL", label: "Apple" }, { ticker: "COST", label: "Costco" }, { ticker: "WDFC", label: "WD-40" }, { ticker: "NKE", label: "Nike" }];
+  let showing = ["AAPL", "COST", "WDFC"];
+  const paintPicks = (label = "Try") => {
+    $("trylabel").textContent = label;
+    $("picks").innerHTML = showing.map(t => pool.find(c => c.ticker === t)).map(c => {
+      const when = c.filed ? day(c.filed).split(" ").slice(0, 2).join(" ") : "";
+      return `<button class="chip" type="button" data-try="${esc(c.ticker)}"${c.filed ? ` title="${esc(c.name)}: annual report filed ${esc(day(c.filed))}"` : ""}>${esc(c.label)}${when ? `<span class="when">${esc(when)}</span>` : ""}</button>`;
+    }).join(" ");
+  };
+  $("shuffle").addEventListener("click", () => { // three at random that are not on screen now
+    const rest = pool.map(c => c.ticker).filter(t => !showing.includes(t));
+    for (let i = rest.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [rest[i], rest[j]] = [rest[j], rest[i]]; }
+    showing = rest.concat(showing).slice(0, 3);
+    paintPicks();
+  });
   fetch("/api/fresh").then(r => r.ok ? r.json() : null).then(d => {
     if (!d?.fresh?.length) return;
-    $("fresh").innerHTML = "Just filed " + d.fresh.map(c => { const [day_, mon] = day(c.filed).split(" "); return `<button class="chip" type="button" data-try="${esc(c.ticker)}" title="${esc(c.name)}: annual report filed ${esc(day(c.filed))}">${esc(shortName(c.name))}<span class="when">${esc(day_)} ${esc(mon)}</span></button>`; }).join(" ");
-    $("fresh").hidden = false;
+    const fresh = d.fresh.map(c => ({ ticker: c.ticker, label: shortName(c.name), name: c.name, filed: c.filed }));
+    pool = fresh.concat(pool.filter(c => !fresh.some(f => f.ticker === c.ticker)));
+    showing = fresh.slice(0, 3).map(c => c.ticker); // open with the three newest annual reports
+    paintPicks("Just filed");
   }).catch(() => {});
 
   // ---------- Light and dark ----------

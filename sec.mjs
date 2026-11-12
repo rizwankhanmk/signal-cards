@@ -129,7 +129,7 @@ export async function search(rawQuery, UA, limit = 8) {
 // each one's latest 10-K date, and return the newest few. Worked out at most twice a day.
 const BIG = 100;          // how many of the biggest companies to look at
 const AT_ONCE = 6;        // lookups in flight at a time; the SEC asks for no more than 10 a second
-export async function fresh(UA, limit = 6) {
+export async function fresh(UA, limit = 12) {
   const file = `${DIR}/_fresh.json`;
   const saved = await readSaved(file, 12);
   if (saved) return saved.list.slice(0, limit);
