@@ -252,7 +252,7 @@
   .tabbar { display: none; }
   .nextpill { margin-top: 30px; padding: 0 22px; min-height: 44px; font-size: 15px; }
   @media (max-width: 699px) {
-    .barnav .pill, .nextpill { display: none; }
+    .barnav .pill, .nextpill, .steps { display: none; } /* the bottom bar's Previous and Next do this job on a phone */
     .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; justify-content: center; gap: 10px;
               padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent);
               -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
