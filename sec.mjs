@@ -43,7 +43,7 @@ async function getJson(url, UA) {
     ? "Missing SEC_USER_AGENT. Add it under Environment Variables in the Vercel project settings, then redeploy."
     : "Missing SEC_USER_AGENT. Copy .env.example to .env and fill it in.", 500);
   let res;
-  try { res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Encoding": "gzip, deflate" } }); }
+  try { res = await fetch(url, { headers: { "User-Agent": UA, "Accept-Encoding": "gzip, deflate" }, signal: AbortSignal.timeout(12_000) }); }
   catch { throw new Friendly("Could not reach the SEC. Check your internet connection and try again.", 502); }
   if (res.status === 404) return null;
   if (!res.ok) throw new Friendly(`The SEC answered ${res.status}. Wait a minute and try again.`, 502);
@@ -122,6 +122,36 @@ export async function search(rawQuery, UA, limit = 8) {
     .sort((a, b) => a.r - b.r || a.order - b.order)
     .filter(x => (x.r === 0 || !seen.has(x.c.cik)) && seen.add(x.c.cik))
     .slice(0, limit).map(x => ({ ticker: x.c.ticker, name: x.c.name, ...(brands.has(x.c.ticker) && { aka: brands.get(x.c.ticker) }) }));
+}
+
+// Big companies whose annual report landed most recently: fresh numbers worth reading.
+// The SEC's company list comes roughly biggest first, so we take the first hundred or so, look up
+// each one's latest 10-K date, and return the newest few. Worked out at most twice a day.
+const BIG = 100;          // how many of the biggest companies to look at
+const AT_ONCE = 6;        // lookups in flight at a time; the SEC asks for no more than 10 a second
+export async function fresh(UA, limit = 6) {
+  const file = `${DIR}/_fresh.json`;
+  const saved = await readSaved(file, 12);
+  if (saved) return saved.list.slice(0, limit);
+  const seen = new Set();
+  const big = (await companies(UA)).filter(c => !seen.has(c.cik) && seen.add(c.cik)).slice(0, BIG);
+  const found = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: AT_ONCE }, async () => {
+    while (next < big.length) {
+      const c = big[next++];
+      try {
+        const sub = await getJson(`https://data.sec.gov/submissions/CIK${String(c.cik).padStart(10, "0")}.json`, UA);
+        const r = sub?.filings?.recent;
+        const i = Array.isArray(r?.form) ? r.form.indexOf("10-K") : -1; // filings come newest first
+        if (i >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(r.filingDate?.[i] ?? "")) found.push({ ticker: c.ticker, name: c.name, filed: r.filingDate[i] });
+      } catch {} // one company failing should not sink the list
+    }
+  }));
+  if (!found.length) throw new Friendly("Could not work out which annual reports are newest. Try again later.", 502);
+  const list = found.sort((a, b) => b.filed.localeCompare(a.filed)).slice(0, 12);
+  await save(file, { version: VERSION, fetched_at: new Date().toISOString(), list });
+  return list.slice(0, limit);
 }
 
 // The eight cards for one ticker. Uses the saved copy if it is under a day old, unless fresh is true.
