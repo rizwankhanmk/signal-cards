@@ -83,6 +83,25 @@
   .key { text-align: center; font-size: 13px; color: var(--muted); margin: 26px 0 0; }
   .key span { white-space: nowrap; margin: 0 .7em; }
   @media (max-width: 420px) { .tile { min-height: 168px; padding: 16px; border-radius: 16px; } .grid { gap: 10px; } }
+  .t-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .badge { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .t-result { font-size: 12px; color: var(--muted); margin-top: 3px; min-height: 1.3em; }
+  .tile.down { outline: 1px dashed color-mix(in srgb, var(--text) 28%, transparent); outline-offset: -1px; background: none; }
+  .tile.down .t-label { color: var(--muted); font-weight: 500; }
+
+  /* Catch the flag: the score line, the guess buttons, the flip */
+  .score { display: flex; gap: 6px 16px; justify-content: center; align-items: baseline; flex-wrap: wrap; font-size: 15px; margin: -14px 0 26px; }
+  .score b { font-weight: 600; }
+  .ask-flag { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; margin: 44px 0 18px; }
+  .guess { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .guess button { font-size: 17px; font-weight: 500; padding: 12px 24px; border-radius: 999px; cursor: pointer; background: var(--surface); border: 1px solid transparent; }
+  .guess button:hover { border-color: var(--text); }
+  .verdict { font-size: 15px; color: var(--muted); margin: 0 0 6px; }
+  @keyframes flip { from { transform: rotateX(80deg); opacity: 0; } to { transform: none; opacity: 1; } }
+  .flipped { animation: flip .4s ease; }
+  @media (prefers-reduced-motion: reduce) { .flipped { animation: none; } .tile { transition: none; } }
+  .tick { display: flex; gap: 10px; align-items: center; font-size: 15px; margin: 18px 0 0; cursor: pointer; width: fit-content; }
+  .tick input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--text); border-radius: 4px; }
 
   /* One card, one screen */
   .nav { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
@@ -90,7 +109,8 @@
   .hero .kicker { font-size: 15px; color: var(--muted); margin: 0 0 22px; }
   .hero .big { font-size: clamp(64px, 17vw, 152px); font-weight: 700; letter-spacing: -.055em; line-height: .95; margin: 0; font-variant-numeric: tabular-nums; }
   .hero .under { font-size: 17px; color: var(--muted); margin: 14px 0 0; }
-  .hero .name { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 44px 0 12px; }
+  .hero .name { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 0 0 12px; }
+  .hero .reveal { margin-top: 44px; }
   .hero .line { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; line-height: 1.25; max-width: 30ch; margin: 0 auto; text-wrap: balance; }
   .hero .line.plain { font-weight: 400; font-size: 19px; color: var(--muted); max-width: 44ch; letter-spacing: 0; }
   .hero .what { font-size: 15px; color: var(--muted); max-width: 52ch; margin: 30px auto 0; text-wrap: pretty; }
@@ -148,6 +168,7 @@
 
     <section id="overview" hidden>
       <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p></div>
+      <p class="score" id="score" hidden></p>
       <div class="grid" id="grid"></div>
       <p class="key" id="key" hidden>
         <span><i class="mark good"></i>Good</span><span><i class="mark watch"></i>Watch</span><span><i class="mark warn"></i>Warning</span>
@@ -199,9 +220,24 @@
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintTheme);
   paintTheme();
 
+  // ---------- What this browser remembers ----------
+  // Your guesses and your "checked" ticks, per company and fiscal year. Kept in this browser only.
+  const mem = {};
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)) ?? mem[k] ?? {}; } catch { return mem[k] ?? {}; } },
+    set(k, v) { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  const keyFor = (kind, d) => `sc:${kind}:${d.ticker}:${d.fiscal.this_year.end}`;
+  const guesses = d => store.get(keyFor("guess", d));   // { "3": "warn" }  or "skip" if revealed without guessing
+  const checks = d => store.get(keyFor("checked", d));  // { "3": true }
+  const TONES = { good: "Good", watch: "Watch", warn: "Warning" };
+  const canGuess = c => !!c.tone;                        // cards with no label have nothing to guess
+  const faceDown = (d, n) => canGuess(d.cards[n - 1]) && !guesses(d)[n];
+
   // ---------- What the address bar says ----------
   // ?ticker=AAPL shows the eight tiles. ?ticker=AAPL&card=3 shows card 3 on its own screen.
   let data = null; // the company currently loaded
+  let justFlipped = 0; // the card that was just guessed, so its tile can flip once
   const where = () => {
     const q = new URLSearchParams(location.search);
     const n = Number(q.get("card"));
@@ -248,13 +284,34 @@
     $("company").textContent = d.company;
     $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
     $("key").hidden = false;
-    $("grid").innerHTML = d.cards.map((c, i) => `
-      <button class="tile${c.label ? "" : " empty"}" type="button" data-card="${i + 1}">
-        <span class="t-name">${esc(c.signal)}</span>
+    const g = guesses(d), ch = checks(d);
+    $("grid").innerHTML = d.cards.map((c, i) => {
+      const n = i + 1, down = faceDown(d, n);
+      const result = !canGuess(c) || down || g[n] === "skip" ? "" : g[n] === c.tone ? "You caught it" : `You said ${TONES[g[n]]}`;
+      return `
+      <button class="tile${c.label ? "" : " empty"}${down ? " down" : ""}${n === justFlipped ? " flipped" : ""}" type="button" data-card="${n}">
+        <span class="t-top"><span class="t-name">${esc(c.signal)}</span>${c.rows.length && !down ? `<span class="badge">${ch[n] ? "Checked" : "Draft"}</span>` : ""}</span>
         <span class="t-big">${esc(c.big)}</span>
         <span class="t-small">${esc(c.small)}</span>
-        <span class="t-label">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</span>
-      </button>`).join("");
+        <span class="t-label">${down ? "Tap to guess" : mark(c.tone) + esc(c.label ? c.label.name : c.state)}</span>
+        <span class="t-result">${esc(result)}</span>
+      </button>`; }).join("");
+    justFlipped = 0;
+    drawScore(d);
+  }
+
+  // The score line above the tiles.
+  function drawScore(d) {
+    const g = guesses(d), playable = d.cards.map((c, i) => i + 1).filter(n => canGuess(d.cards[n - 1]));
+    const left = playable.filter(n => !g[n]).length;
+    const tried = playable.filter(n => g[n] && g[n] !== "skip");
+    const caught = tried.filter(n => g[n] === d.cards[n - 1].tone).length;
+    $("score").hidden = !playable.length;
+    const tally = tried.length ? `<b>${caught} of ${tried.length} caught.</b>` : "";
+    const cheer = caught === tried.length ? "Clean sweep." : caught * 2 >= tried.length ? "Not bad." : "The exam is tomorrow. Keep reading.";
+    $("score").innerHTML = left
+      ? `<span>Catch the flag: guess each label before you flip it.</span> ${tally} <span class="muted">${left} to go</span> <button class="ghost" type="button" id="reveal">Reveal all</button>`
+      : `${tally} <span>${tried.length ? cheer : "All flipped."}</span> <button class="ghost" type="button" id="again">Play again</button>`;
   }
 
   function drawCard(d, n) {
@@ -279,17 +336,38 @@
         </table></div>
         <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>
       </div>` : "";
-    $("detail").innerHTML = `
+    const down = faceDown(d, n), said = guesses(d)[n], checked = !!checks(d)[n];
+    const verdict = !canGuess(c) || !said || said === "skip" ? "" : said === c.tone ? "You caught it." : `You said ${TONES[said]}. Missed this one.`;
+    const steps = `
+      <div class="steps">
+        ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(prev.signal)}</button>` : ""}
+        ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(next.signal)} →</button>` : ""}
+      </div>`;
+    const top = `
       <div class="nav">
         <button class="ghost" type="button" data-card="0">← All eight</button>
         <span class="muted">${n} of 8</span>
-      </div>
-      <div class="hero">
+      </div>`;
+    const numbers = `
         <p class="kicker">${esc(c.signal)} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
         <p class="big">${esc(c.big)}</p>
-        <p class="under">${esc(c.small)}</p>
-        <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
-        <p class="line${c.label ? "" : " plain"}">${esc(c.label ? c.label.reason : c.note)}</p>
+        <p class="under">${esc(c.small)}</p>`;
+    if (down) { // face down: the two numbers and the question, nothing that gives the answer away
+      $("detail").innerHTML = `${top}
+      <div class="hero">${numbers}
+        <p class="ask-flag">Good, watch or warning?</p>
+        <div class="guess">${Object.entries(TONES).map(([t, word]) => `<button type="button" data-guess="${t}">${mark(t)}${word}</button>`).join("")}</div>
+        <p class="what">${esc(c.what)}</p>
+      </div>${steps}`;
+      return;
+    }
+    $("detail").innerHTML = `${top}
+      <div class="hero">${numbers}
+        <div class="reveal${n === justFlipped ? " flipped" : ""}">
+          <p class="verdict">${esc(verdict)}</p>
+          <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
+          <p class="line${c.label ? "" : " plain"}">${esc(c.label ? c.label.reason : c.note)}</p>
+        </div>
         <p class="what">${esc(c.what)}</p>
       </div>
       ${c.rows.length ? `
@@ -300,12 +378,10 @@
           <tr><th>Item</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th><th>Source</th></tr>
           ${rows}
         </table></div>
-        <p class="note muted">${esc(c.status)}. Tick when you have checked the numbers in the filing. A label is a first screen, not a verdict.</p>
-      </div>${trend}` : ""}
-      <div class="steps">
-        ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(prev.signal)}</button>` : ""}
-        ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(next.signal)} →</button>` : ""}
-      </div>`;
+        <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
+        <p class="note muted">A label is a first screen, not a verdict.</p>
+      </div>${trend}` : ""}${steps}`;
+    justFlipped = 0;
   }
 
   // ---------- Search: type a name or a ticker, pick from the list ----------
@@ -362,8 +438,27 @@
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);
+    if (!data) return;
+    const { card } = where();
+    const guess = e.target.closest("[data-guess]");
+    if (guess && card) { // a guess on a card screen: remember it and flip
+      store.set(keyFor("guess", data), { ...guesses(data), [card]: guess.dataset.guess });
+      justFlipped = card; return render();
+    }
+    if (e.target.closest("#reveal")) { // flip everything that is still face down, without scoring it
+      const g = { ...guesses(data) };
+      data.cards.forEach((c, i) => { if (canGuess(c) && !g[i + 1]) g[i + 1] = "skip"; });
+      store.set(keyFor("guess", data), g); return render();
+    }
+    if (e.target.closest("#again")) { store.set(keyFor("guess", data), {}); return render(); }
     const b = e.target.closest("[data-card]");
-    if (b && data) go(data.ticker, Number(b.dataset.card));
+    if (b) go(data.ticker, Number(b.dataset.card));
+  });
+  document.addEventListener("change", e => {
+    if (e.target.id !== "checked" || !data) return;
+    const { card } = where();
+    store.set(keyFor("checked", data), { ...checks(data), [card]: e.target.checked });
+    render();
   });
   document.addEventListener("keydown", e => {
     const { ticker, card } = where();

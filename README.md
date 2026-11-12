@@ -30,6 +30,10 @@ How it works:
   compares a year with the year before by the same rules. The label itself still comes from the latest two years.
 - Company names from the SEC are tidied ("COSTCO WHOLESALE CORP /NEW" becomes "Costco Wholesale Corp").
   That is a best guess; names it gets wrong are fixed by hand in `BY_HAND` in `sec.mjs`.
+- Catch the flag: tiles start face down, showing only the two numbers. Tap one, guess Good, Watch or Warning,
+  and it flips. "Reveal all" flips the rest without scoring; "Play again" turns them back over.
+- Draft: every card is Draft until you tick "I checked these numbers in the filing myself". Then it says Checked.
+- Guesses and ticks are remembered in your browser only, per company and fiscal year.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
