@@ -307,7 +307,16 @@
     set(k, v) { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   };
   const keyFor = (kind, d) => `sc:${kind}:${d.ticker}:${d.fiscal.this_year.end}`;
-  const guesses = d => store.get(keyFor("guess", d));   // { "3": "warn" }  or "skip" if revealed without guessing
+  // Guesses last for one sitting: they are forgotten when you close the tab, and when a new day starts.
+  // So the cards are face down again each time you come back. Ticks and switches are kept for good.
+  const sitting = {
+    get(k) { try { return JSON.parse(sessionStorage.getItem(k)) ?? mem[k] ?? {}; } catch { return mem[k] ?? {}; } },
+    set(k, v) { mem[k] = v; try { sessionStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  const today = () => new Date().toDateString();
+  const guesses = d => { const g = sitting.get(keyFor("guess", d)); return g._day === today() ? g : {}; }; // { "3": "warn" }, or "skip" if revealed without guessing
+  const setGuesses = (d, g) => sitting.set(keyFor("guess", d), { ...g, _day: today() });
+  try { Object.keys(localStorage).filter(k => k.startsWith("sc:guess:")).forEach(k => localStorage.removeItem(k)); } catch {} // guesses from before this change
   const checks = d => store.get(keyFor("checked", d));  // { "3": true }
   const TONES = { good: "Good", watch: "Watch", warn: "Warning" };
   const canGuess = c => !!c.tone;                        // cards with no label have nothing to guess
@@ -582,7 +591,7 @@
       if (picking) return;
       const d = data, commit = () => {
         picking = false;
-        store.set(keyFor("guess", d), { ...guesses(d), [card]: guess.dataset.guess });
+        setGuesses(d, { ...guesses(d), [card]: guess.dataset.guess });
         justFlipped = tileToFlip = card; render();
       };
       const box = guess.closest(".guess");
@@ -593,9 +602,9 @@
     if (e.target.closest("#reveal")) { // flip everything that is still face down, without scoring it
       const g = { ...guesses(data) };
       data.cards.forEach((c, i) => { if (canGuess(c) && !g[i + 1]) g[i + 1] = "skip"; });
-      store.set(keyFor("guess", data), g); return render();
+      setGuesses(data, g); return render();
     }
-    if (e.target.closest("#again")) { store.set(keyFor("guess", data), {}); return render(); }
+    if (e.target.closest("#again")) { setGuesses(data, {}); return render(); }
     const b = e.target.closest("[data-card]");
     if (!b) return;
     const owner = b.dataset.ticker || data.ticker; // in a comparison, a tile may belong to the other company

@@ -53,7 +53,8 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - Catch the flag: tiles start face down, showing only the two numbers. Tap one, guess Good, Watch or Warning,
   and it flips. "Reveal all" flips the rest without scoring; "Play again" turns them back over.
 - Draft: every card is Draft until you tick "I checked these numbers in the filing myself". Then it says Checked.
-- Guesses and ticks are remembered in your browser only, per company and fiscal year.
+- Guesses last for one sitting: the cards are face down again when you close the tab or a new day starts.
+  Ticks and the two switches are remembered in your browser for good, per company and fiscal year.
 - Accounting / Plain English: one switch swaps the wording everywhere ("Accounts receivable" becomes "Unpaid customer bills").
   Both wordings are written in `signals.mjs`.
 - Investor / COO: same cards, different last line. The investor's line says what to check in the filing;
