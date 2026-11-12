@@ -35,7 +35,8 @@ for (const t of tickers) {
   });
 
   console.log(`CHECK THESE AGAINST THE 10-K filed ${out.filing.filed}: ${out.filing.url}`);
-  console.log(`Tip: press Cmd+F and search for the number itself, then check the row name beside it.\n`);
+  console.log(`Tip: press Cmd+F and search for the number itself, then check the row name beside it.`);
+  console.log(`In the app, tapping a number on a card opens the filing at that number.\n`);
   console.log(`   ${pad("Item", 22)}${pad(T.fy, 12)}${pad(L.fy, 12)}${pad("Where", 26)}SEC tag`);
   for (const i of out.inputs) console.log(`   ${pad(i.item, 22)}${pad(i.shown[0], 12)}${pad(i.shown[1], 12)}${pad(i.statement, 26)}${i.tag}`);
   console.log(`\nNot found in the SEC data: ${out.missing.join(", ")}`);

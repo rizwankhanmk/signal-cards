@@ -209,7 +209,12 @@ const WHAT = {
 // info: { sic, sicDescription } from the SEC's company record. Optional.
 export function buildCards(facts, cik, info = {}) {
   const gaap = facts.facts?.["us-gaap"];
-  const filingUrl = r => `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${r.accn.replace(/-/g, "")}/`;
+  // Where a number can be checked. If we know the name of the 10-K document inside the filing, link
+  // straight to it; otherwise link to the filing's folder.
+  const filingUrl = r => `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${r.accn.replace(/-/g, "")}/${info.docs?.[r.accn] ?? ""}`;
+  // A link that opens the 10-K scrolled to a number and highlights it, e.g. ...htm#:~:text=83,292.
+  // Browsers that don't support this just open the document at the top.
+  const atNumber = (r, shown) => info.docs?.[r.accn] ? `${filingUrl(r)}#:~:text=${encodeURIComponent(shown)}` : null;
 
   // Sales sets the two fiscal years. Use the sales tag with the most recent annual figure.
   // If two tags cover the same year, the larger one is total revenue (the other is a part of it).
@@ -249,6 +254,7 @@ export function buildCards(facts, cik, info = {}) {
   const inputRow = (f, formula = []) => ({
     item: f.item, item_plain: CONCEPTS[f.key].plain, tag: f.tag, statement: f.statement, url: f.this_year.url,
     this_year: fmt(f.this_year.usd), last_year: fmt(f.last_year.usd), formula,
+    this_link: atNumber(f.this_year, fmt(Math.abs(f.this_year.usd))), last_link: atNumber(f.last_year, fmt(Math.abs(f.last_year.usd))),
   });
   const growthRow = f => {
     const [a, b] = [f.this_year.usd, f.last_year.usd];
