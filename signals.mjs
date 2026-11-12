@@ -66,10 +66,12 @@ const up = x => `up ${pct(x)}`, down = x => `down ${pct(x)}`;
 // Inventory, Receivables, SG&A (and later Labour force): is the item growing faster or slower than sales?
 const ABOUT_SAME_PP = 5;  // "about the same rate" means within this many percentage points
 const BIG_GAP_PP = 10;    // a Warning gets the stronger line when the item outruns sales by more than this
+const KEEPING_PACE_PP = 2; // both rising within this many points of each other is "keeping pace", not Good or Warning
 function paceLabel(s, i, w) {
   const gap = round1(i - s); // positive = item grew faster than sales
   if (s >= 0) {
     if (i <= 0) return { name: "Most favourable", reason: `Sales ${up(s)}. ${w.Noun} ${i < 0 ? down(i) : "flat"}. ${w.best}` };
+    if (Math.abs(gap) <= KEEPING_PACE_PP) return { name: "Neutral / watch", reason: `Sales ${up(s)}. ${w.Noun} ${up(i)}. Keeping pace with sales. Nothing to see. Yet.` };
     if (i < s) return { name: "Good", reason: `Sales ${up(s)}. ${w.Noun} ${up(i)}. ${w.good}` };
     return { name: "Warning", reason: `Sales grew ${pct(s)}. ${w.Noun} grew ${pct(i)}. ${gap > BIG_GAP_PP ? w.warnBig : w.warn}` };
   }
@@ -141,6 +143,21 @@ function taxLabel(change, thisR, lastR) {
   return { name: "Warning", reason: `Tax rate jumped from ${moved}. Either this year is high or last year was low. Find out which.` };
 }
 
+// A label's tone, for the small mark beside it: hollow = good, half = watch, filled = warning.
+const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
+
+// One plain line on what each signal is and why it matters.
+const WHAT = {
+  "Inventory": "Goods the company has bought or made but not yet sold. If it grows faster than sales, stock may be piling up.",
+  "Accounts receivable": "Money customers owe for things already sold to them. If it grows faster than sales, customers may be taking longer to pay.",
+  "Capital expenditure": "Money spent on long-lasting things like buildings and machines. It shows how much the company is investing in its future.",
+  "Research and development": "Money spent inventing and improving products. Cutting it lifts profit today and can cost sales later.",
+  "Gross profit": "Sales minus the direct cost of what was sold. Gross margin is how many cents of each sales dollar are left after that cost.",
+  "SG&A": "Selling, general and administrative costs: the overheads of running the business, such as salaries, offices and advertising.",
+  "Effective tax rate": "The share of pre-tax profit that goes to income tax. Big swings often come from one-off items.",
+  "Labour force": "How many people the company employs. Set against sales, it shows whether each person is producing more.",
+};
+
 // ---------- 4. Build the cards ----------
 // info: { sic, sicDescription } from the SEC's company record. Optional.
 export function buildCards(facts, cik, info = {}) {
@@ -192,13 +209,45 @@ export function buildCards(facts, cik, info = {}) {
     return { ...inputRow(f, [`(${fmt(a)} − ${fmt(b)}) ÷ ${fmt(b)} × 100 = ${g < 0 ? "−" : ""}${one(Math.abs(g))}%`]), growth_pct: g };
   };
   const industry = info.sicDescription ? ` (SEC industry: ${info.sicDescription})` : "";
-  const noCard = (signal, state, note) => ({ signal, state, rows: [], label: null, status: "Draft", note, big: "—", small: "" });
+  const noCard = (signal, state, note) => ({ signal, what: WHAT[signal], state, rows: [], label: null, tone: null, trend: null, status: "Draft", note, big: "—", small: "" });
   // A missing item is "Doesn't apply" only where we know why; otherwise it is "Not found".
   const missingCard = (signal, missing, financialNote) => financialNote && isFinancial(info.sic)
     ? noCard(signal, "Doesn't apply", `${financialNote}${industry}.`)
     : noCard(signal, "Not found", `Not found in the SEC data for these two years: ${missing.join(", ")}. The company may not report it as its own line. Missing does not mean zero.`);
   // big and small: the one number shown on the tile, and the line under it.
-  const card = (signal, rows, label, extra = {}) => ({ signal, state: "OK", rows, label, status: "Draft", big: "—", small: "", ...extra });
+  const card = (signal, rows, label, extra = {}) => ({ signal, what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, status: "Draft", big: "—", small: "", ...extra });
+
+  // 7. The last few years, for context. The label still comes from the latest two years only.
+  // Each trend row compares one year with the year before, using the same rules as the label.
+  const ends = [anchor[0].end];
+  for (let k = 1; k < anchor.length && ends.length < 6; k++) {
+    const d = days(anchor[k].end, anchor[k - 1].end);
+    if (d < 350 || d > 380) break;
+    ends.push(anchor[k].end);
+  }
+  const seriesOf = f => { const rows = annualRows(gaap, f.tag, CONCEPTS[f.key].instant); return ends.map(e => rows.find(r => r.end === e)?.val ?? null); };
+  const growthOf = (a, b) => a === null || b === null || b === 0 ? null : round1((a - b) / Math.abs(b) * 100);
+  const salesSeries = seriesOf(F.sales);
+  const salesGrowth = k => growthOf(salesSeries[k], salesSeries[k + 1]);
+  // rowFor(k) returns the cells for year k against year k+1, or null where the history runs out.
+  function trendTable(columns, rowFor) {
+    const rows = [];
+    for (let k = 0; k + 1 < ends.length; k++) { const r = rowFor(k); if (!r) break; rows.push([fyLabel(ends[k]), ...r]); }
+    return rows.length > 1 ? { columns: ["Year", ...columns], rows } : null;
+  }
+  const paceTrend = (key, labeller) => {
+    const it = seriesOf(F[key]);
+    return trendTable(["Sales growth", `${CONCEPTS[key].name} growth`, "Label"], k => {
+      const sg = salesGrowth(k), ig = growthOf(it[k], it[k + 1]);
+      return sg === null || ig === null ? null : [signedPct(sg), signedPct(ig), labeller(sg, ig).name];
+    });
+  };
+  const rateTrend = (name, rates, labelFor) => trendTable([name, "Change", "Label"], k => {
+    const [a, b] = [rates[k], rates[k + 1]];
+    if (a === null || b === null) return null;
+    const change = round1(a - b);
+    return [`${one(a)}%`, `${signed(change)} points`, labelFor(k, change, a, b)];
+  });
 
   const salesRow = growthRow(F.sales);
   const s = salesRow.growth_pct;
@@ -208,7 +257,7 @@ export function buildCards(facts, cik, info = {}) {
     if (!F[key]) return missingCard(signal, [CONCEPTS[key].name], financialNote);
     const row = growthRow(F[key]);
     if (s === null || row.growth_pct === null) return card(signal, [salesRow, row], null, { state: "No label", note: "A growth rate could not be worked out because last year's figure was zero." });
-    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}` });
+    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller) });
   }
 
   function grossProfit() {
@@ -228,7 +277,10 @@ export function buildCards(facts, cik, info = {}) {
     const change = round1(ma - mb);
     rows.push({ item: "Gross margin", statement: "Worked out here", this_year: `${one(ma)}%`, last_year: `${one(mb)}%`,
       formula: [`${fmt(ga)} ÷ ${fmt(sa)} × 100 = ${one(ma)}%`, `${fmt(gb)} ÷ ${fmt(sb)} × 100 = ${one(mb)}%`, `${one(ma)} − ${one(mb)} = ${signed(change)} percentage points`] });
-    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year` });
+    const grossSeries = F.cost ? seriesOf(F.cost).map((c, k) => c === null ? null : salesSeries[k] - c) : seriesOf(F.gross);
+    const margins = grossSeries.map((g, k) => g === null ? null : round1(g / salesSeries[k] * 100));
+    const trend = rateTrend("Gross margin", margins, (k, ch, a, b) => salesGrowth(k) === null ? "—" : marginLabel(salesGrowth(k), ch, a, b).name);
+    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year`, trend });
   }
 
   function taxRate() {
@@ -241,7 +293,10 @@ export function buildCards(facts, cik, info = {}) {
     const change = round1(ra - rb);
     rows.push({ item: "Effective tax rate", statement: "Worked out here", this_year: `${one(ra)}%`, last_year: `${one(rb)}%`,
       formula: [`${fmt(ta)} ÷ ${fmt(pa)} × 100 = ${one(ra)}%`, `${fmt(tb)} ÷ ${fmt(pb)} × 100 = ${one(rb)}%`, `${one(ra)} − ${one(rb)} = ${signed(change)} percentage points`] });
-    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year` });
+    const [taxes, pretaxes] = [seriesOf(F.tax), seriesOf(F.pretax)];
+    const rates = taxes.map((t, k) => t === null || pretaxes[k] === null || pretaxes[k] <= 0 ? null : round1(t / pretaxes[k] * 100));
+    const trend = rateTrend("Effective tax rate", rates, (k, ch, a, b) => taxLabel(ch, a, b).name);
+    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend });
   }
 
   const cards = [

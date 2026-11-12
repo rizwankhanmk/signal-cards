@@ -33,23 +33,39 @@
   .ghost { background: none; border: 0; padding: 6px 0; cursor: pointer; color: var(--muted); font-size: 14px; }
   .ghost:hover { color: var(--text); }
 
-  /* Ticker box */
+  /* Search box */
   .ask { text-align: center; padding: 9vh 0 6vh; }
   .ask.small { padding: 3vh 0 4vh; }
   .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 14px; text-wrap: balance; }
-  .ask.small .motto, .ask.small .lede { display: none; }
+  .ask.small .motto, .ask.small .lede, .ask.small .tries { display: none; }
   .lede { font-size: 19px; color: var(--muted); margin: 0 0 34px; }
-  form { display: inline-flex; gap: 8px; }
-  input { font: inherit; font-size: 19px; font-weight: 500; width: 10.5rem; padding: 12px 18px; text-align: center; text-transform: uppercase;
-          letter-spacing: .04em; color: var(--text); background: var(--surface); border: 1px solid transparent; border-radius: 999px; }
-  input::placeholder { color: var(--muted); opacity: .7; }
+  form { display: flex; gap: 8px; justify-content: center; }
+  .box { position: relative; width: min(21rem, 100%); }
+  input { font: inherit; font-size: 18px; font-weight: 500; width: 100%; padding: 12px 20px; color: var(--text);
+          background: var(--surface); border: 1px solid transparent; border-radius: 999px; }
+  input::placeholder { color: var(--muted); opacity: .8; font-weight: 400; }
   input:focus { outline: none; border-color: var(--text); }
   .go { font-size: 17px; font-weight: 500; padding: 12px 22px; border-radius: 999px; border: 0; cursor: pointer; background: var(--text); color: var(--bg); }
+  .hits { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 6px); margin: 0; padding: 6px; list-style: none; text-align: left;
+          background: var(--bg); border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); border-radius: 18px;
+          box-shadow: 0 12px 32px color-mix(in srgb, #000 16%, transparent); }
+  .hits li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 14px; border-radius: 12px; cursor: pointer; font-size: 16px; }
+  .hits li[aria-selected="true"], .hits li:hover { background: var(--surface); }
+  .hits .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hits .t { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tries { margin: 22px 0 0; font-size: 15px; color: var(--muted); display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  .chip { background: none; border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); border-radius: 999px; padding: 6px 14px; cursor: pointer; font-size: 15px; }
+  .chip:hover { background: var(--surface); }
 
   /* Company heading */
   .head { text-align: center; padding: 0 0 36px; }
   .head h1 { font-size: clamp(26px, 4.6vw, 40px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
   .head p { margin: 0; font-size: 15px; }
+
+  /* The small mark beside a label: hollow = good, half = watch, filled = warning. Shape, not colour. */
+  .mark { display: inline-block; width: .62em; height: .62em; border-radius: 50%; border: 1.5px solid currentColor; margin-right: .5em; vertical-align: .02em; }
+  .mark.watch { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+  .mark.warn { background: currentColor; }
 
   /* Eight tiles */
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
@@ -62,6 +78,8 @@
   .t-small { font-size: 13px; color: var(--muted); margin-top: 6px; min-height: 1.2em; }
   .t-label { font-size: 15px; font-weight: 600; margin-top: 14px; }
   .tile.empty .t-big, .tile.empty .t-label { color: var(--muted); }
+  .key { text-align: center; font-size: 13px; color: var(--muted); margin: 26px 0 0; }
+  .key span { white-space: nowrap; margin: 0 .7em; }
   @media (max-width: 420px) { .tile { min-height: 168px; padding: 16px; border-radius: 16px; } .grid { gap: 10px; } }
 
   /* One card, one screen */
@@ -73,8 +91,10 @@
   .hero .name { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 44px 0 12px; }
   .hero .line { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; line-height: 1.25; max-width: 30ch; margin: 0 auto; text-wrap: balance; }
   .hero .line.plain { font-weight: 400; font-size: 19px; color: var(--muted); max-width: 44ch; letter-spacing: 0; }
+  .hero .what { font-size: 15px; color: var(--muted); max-width: 52ch; margin: 30px auto 0; text-wrap: pretty; }
 
   .proof { padding: 28px 0 0; }
+  .proof + .proof { padding-top: 44px; }
   .proof h2 { font-size: 14px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 0 0 4px; }
   .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 15px; margin-top: 8px; }
@@ -82,7 +102,8 @@
   th, td { text-align: left; padding: 12px 14px 12px 0; vertical-align: top; border-bottom: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   td.f { font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .draft { font-size: 14px; margin: 18px 0 0; }
+  td.lab { white-space: nowrap; }
+  .note { font-size: 14px; margin: 18px 0 0; }
   .steps { display: flex; justify-content: space-between; gap: 16px; padding: 44px 0 0; font-size: 15px; }
   .steps button { background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
   .steps button:last-child { text-align: right; margin-left: auto; }
@@ -104,14 +125,27 @@
       <p class="motto">Just assume tomorrow is the exam.</p>
       <p class="lede">Type a company. Read its annual report in eight numbers.</p>
       <form id="form">
-        <input id="ticker" name="ticker" placeholder="AAPL" aria-label="US ticker" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10" required>
+        <div class="box">
+          <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
+                 role="combobox" aria-expanded="false" aria-controls="hits" aria-autocomplete="list">
+          <ul class="hits" id="hits" role="listbox" hidden></ul>
+        </div>
         <button class="go">Read</button>
       </form>
+      <p class="tries">Try
+        <button class="chip" type="button" data-try="AAPL">Apple</button>
+        <button class="chip" type="button" data-try="COST">Costco</button>
+        <button class="chip" type="button" data-try="WDFC">WD-40</button>
+        <button class="chip" type="button" data-try="JPM">JPMorgan</button>
+      </p>
     </section>
 
     <section id="overview" hidden>
       <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p></div>
       <div class="grid" id="grid"></div>
+      <p class="key" id="key" hidden>
+        <span><i class="mark good"></i>Good</span><span><i class="mark watch"></i>Watch</span><span><i class="mark warn"></i>Warning</span>
+      </p>
     </section>
 
     <article id="detail" hidden></article>
@@ -127,6 +161,11 @@
   const $ = id => document.getElementById(id);
   // Text from the data is shown as text, never as page code.
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // "2026-09-26" -> "26 Sep 2026"
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const day = iso => { const [y, m, d] = iso.slice(0, 10).split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
+  const mark = tone => tone ? `<i class="mark ${esc(tone)}" aria-hidden="true"></i>` : "";
+  const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
 
   // ---------- Light and dark ----------
   // Follows the computer's setting until you press the button; then it remembers your choice.
@@ -155,46 +194,48 @@
     render();
     scrollTo(0, 0);
   };
+  const fail = (title, why) => {
+    data = null;
+    $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false; $("grid").innerHTML = ""; $("key").hidden = true; $("source").textContent = "";
+    $("company").textContent = title; $("meta").textContent = why;
+  };
 
   async function render() {
     const { ticker, card } = where();
     $("ask").classList.toggle("small", !!ticker);
     if (!ticker) {
       data = null; document.title = "Signal Cards";
-      $("overview").hidden = $("detail").hidden = true; $("source").textContent = ""; $("ticker").value = "";
+      $("ask").hidden = false; $("overview").hidden = $("detail").hidden = true; $("source").textContent = ""; $("q").value = "";
       return;
     }
-    $("ticker").value = ticker;
     if (!data || data.ticker !== ticker) {
-      data = null;
-      $("detail").hidden = true; $("overview").hidden = false; $("grid").innerHTML = ""; $("source").textContent = "";
-      $("company").textContent = `Reading ${ticker}…`; $("meta").textContent = "";
+      fail(`Reading ${ticker}…`, "");
       try {
         const r = await fetch(`/api/cards?ticker=${encodeURIComponent(ticker)}`);
         const d = await r.json();
         if (!r.ok) throw new Error(d.error);
-        if (where().ticker !== ticker) return; // you typed another one while this was loading
+        if (where().ticker !== ticker) return; // you asked for another one while this was loading
         data = d;
       } catch (e) {
-        $("company").textContent = "Nothing to read.";
-        $("meta").textContent = e.message || "Something went wrong. Is the server still running in the Terminal?";
-        return;
+        return fail("Nothing to read.", e.message || "Something went wrong. Is the server still running in the Terminal?");
       }
     }
     const d = data, T = d.fiscal.this_year, L = d.fiscal.last_year;
-    $("source").innerHTML = `${esc(d.unit)}, as printed in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(d.filing.filed)}</a>. Pulled from the SEC on ${esc(d.fetched_at.slice(0, 10))}.`;
+    $("q").value = d.company;
+    $("source").innerHTML = `${esc(d.unit)}, as printed in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(day(d.filing.filed))}</a>. Pulled from the SEC on ${esc(day(d.fetched_at))}.`;
     $("ask").hidden = !!card; $("overview").hidden = !!card; $("detail").hidden = !card;
     if (card) return drawCard(d, card);
 
     document.title = `${d.ticker} · Signal Cards`;
     $("company").textContent = d.company;
-    $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${T.end}${d.industry ? ` · ${d.industry}` : ""}`;
+    $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
+    $("key").hidden = false;
     $("grid").innerHTML = d.cards.map((c, i) => `
       <button class="tile${c.label ? "" : " empty"}" type="button" data-card="${i + 1}">
         <span class="t-name">${esc(c.signal)}</span>
         <span class="t-big">${esc(c.big)}</span>
         <span class="t-small">${esc(c.small)}</span>
-        <span class="t-label">${esc(c.label ? c.label.name : c.state)}</span>
+        <span class="t-label">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</span>
       </button>`).join("");
   }
 
@@ -210,6 +251,16 @@
         <td class="f">${r.formula.map(esc).join("<br>")}</td>
         <td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
       </tr>`).join("");
+    // The trend table: the last column is a label, the rest are numbers.
+    const trend = c.trend ? `
+      <div class="proof">
+        <h2>The last ${c.trend.rows.length} years</h2>
+        <div class="scroll"><table>
+          <tr>${c.trend.columns.map((h, i) => `<th${i > 0 && i < c.trend.columns.length - 1 ? ' class="num"' : ""}>${esc(h)}</th>`).join("")}</tr>
+          ${c.trend.rows.map(r => `<tr>${r.map((v, i) => i === 0 ? `<td>${esc(v)}</td>` : i === r.length - 1 ? `<td class="lab">${mark(TONE[v])}${esc(v)}</td>` : `<td class="num">${esc(v)}</td>`).join("")}</tr>`).join("")}
+        </table></div>
+        <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>
+      </div>` : "";
     $("detail").innerHTML = `
       <div class="nav">
         <button class="ghost" type="button" data-card="0">← All eight</button>
@@ -219,8 +270,9 @@
         <p class="kicker">${esc(c.signal)} · ${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
         <p class="big">${esc(c.big)}</p>
         <p class="under">${esc(c.small)}</p>
-        <p class="name">${esc(c.label ? c.label.name : c.state)}</p>
+        <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
         <p class="line${c.label ? "" : " plain"}">${esc(c.label ? c.label.reason : c.note)}</p>
+        <p class="what">${esc(c.what)}</p>
       </div>
       ${c.rows.length ? `
       <hr class="hair">
@@ -230,18 +282,68 @@
           <tr><th>Item</th><th class="num">${esc(T.fy)}</th><th class="num">${esc(L.fy)}</th><th>Formula and result</th><th>Source</th></tr>
           ${rows}
         </table></div>
-        <p class="draft muted">${esc(c.status)}. Tick when you have checked the numbers in the filing. A label is a first screen, not a verdict.</p>
-      </div>` : ""}
+        <p class="note muted">${esc(c.status)}. Tick when you have checked the numbers in the filing. A label is a first screen, not a verdict.</p>
+      </div>${trend}` : ""}
       <div class="steps">
         ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(prev.signal)}</button>` : ""}
         ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(next.signal)} →</button>` : ""}
       </div>`;
   }
 
+  // ---------- Search: type a name or a ticker, pick from the list ----------
+  let hits = [], picked = -1, asked = 0, timer;
+  const closeHits = () => { hits = []; picked = -1; $("hits").hidden = true; $("q").setAttribute("aria-expanded", "false"); };
+  const paintHits = () => {
+    $("hits").hidden = !hits.length; $("q").setAttribute("aria-expanded", String(!!hits.length));
+    $("hits").innerHTML = hits.map((h, i) => `<li role="option" id="hit${i}" data-i="${i}" aria-selected="${i === picked}"><span class="n">${esc(h.name)}</span><span class="t">${esc(h.ticker)}</span></li>`).join("");
+    if (picked >= 0) $("q").setAttribute("aria-activedescendant", `hit${picked}`); else $("q").removeAttribute("aria-activedescendant");
+  };
+  async function find(text) {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(text)}`);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error);
+    return d.results;
+  }
+  $("q").addEventListener("input", () => {
+    clearTimeout(timer);
+    const text = $("q").value.trim(), mine = ++asked;
+    if (!text) return closeHits();
+    timer = setTimeout(async () => {
+      try { const found = await find(text); if (mine === asked) { hits = found; picked = -1; paintHits(); } } catch { if (mine === asked) closeHits(); }
+    }, 140);
+  });
+  $("q").addEventListener("keydown", e => {
+    if (e.key === "Escape") return closeHits();
+    if (!hits.length || (e.key !== "ArrowDown" && e.key !== "ArrowUp")) return;
+    e.preventDefault();
+    picked = (picked + (e.key === "ArrowDown" ? 1 : -1) + hits.length + (picked < 0 && e.key === "ArrowUp" ? 1 : 0)) % hits.length;
+    paintHits();
+  });
+  $("q").addEventListener("focus", () => $("q").select());
+  $("q").addEventListener("blur", () => setTimeout(closeHits, 150));
+  $("hits").addEventListener("mousedown", e => {
+    const li = e.target.closest("li"); if (!li) return;
+    e.preventDefault(); const h = hits[Number(li.dataset.i)]; closeHits(); $("q").blur(); go(h.ticker);
+  });
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearTimeout(timer); asked++;
+    const text = $("q").value.trim();
+    if (!text) return;
+    if (picked >= 0 && hits[picked]) { const h = hits[picked]; closeHits(); $("q").blur(); return go(h.ticker); }
+    closeHits();
+    try {
+      const found = await find(text);               // best match first: an exact ticker wins
+      if (!found.length) { history.pushState(null, "", "./"); $("ask").classList.remove("small"); return fail("Nothing to read.", `No US-listed company matches "${text}". Check the spelling, or try its ticker.`); }
+      $("q").blur(); go(found[0].ticker);
+    } catch (err) { fail("Nothing to read.", err.message || "Something went wrong. Is the server still running in the Terminal?"); }
+  });
+
   // ---------- Clicks and keys ----------
-  $("form").addEventListener("submit", e => { e.preventDefault(); const t = $("ticker").value.trim().toUpperCase(); if (t) go(t); });
-  $("home").addEventListener("click", e => { e.preventDefault(); go(""); $("ticker").focus(); });
+  $("home").addEventListener("click", e => { e.preventDefault(); go(""); $("q").focus(); });
   document.addEventListener("click", e => {
+    const t = e.target.closest("[data-try]");
+    if (t) return go(t.dataset.try);
     const b = e.target.closest("[data-card]");
     if (b && data) go(data.ticker, Number(b.dataset.card));
   });

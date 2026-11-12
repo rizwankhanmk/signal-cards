@@ -6,7 +6,7 @@ Educational, not financial advice.
 ## Run it (any US ticker)
 
 1. Copy `.env.example` to `.env` and put your name and contact email in it. The SEC asks for this on every request.
-2. `npm start`, open http://localhost:3000, type a ticker and press Enter.
+2. `npm start`, open http://localhost:3000, type a company name or a ticker and pick from the list.
 3. Or in the Terminal: `npm run fetch AAPL COST JPM` prints the eight cards for each company, plus a checklist of the numbers to verify in its 10-K. With no ticker it fetches WD-40 (WDFC).
 
 The eight signals: Inventory, Accounts receivable, Capital expenditure, Research and development,
@@ -24,6 +24,11 @@ How it works:
 - Light and dark: follows your computer's setting; the button in the top corner overrides it.
 - Type a ticker, see the company and fiscal year, then eight tiles. Tap a tile to open that card on its own screen.
   Arrow keys move between cards, Esc goes back to the eight.
+- A small mark sits beside each label: hollow for good, half for watch, filled for warning. Shape, not colour.
+- Each card has one plain line on what the signal is, and a table of the last few years. Each trend row
+  compares a year with the year before by the same rules. The label itself still comes from the latest two years.
+- Company names from the SEC are tidied ("COSTCO WHOLESALE CORP /NEW" becomes "Costco Wholesale Corp").
+  That is a best guess; names it gets wrong are fixed by hand in `BY_HAND` in `sec.mjs`.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
@@ -39,14 +44,16 @@ The question: did the item grow faster or slower than sales?
 | Sales | Item | Label |
 | --- | --- | --- |
 | Up | Down or flat | Most favourable |
-| Up | Up, slower than sales | Good |
-| Up | Up, as fast as sales or faster | Warning |
+| Up | Up, within 2 points of sales | Neutral / watch (keeping pace) |
+| Up | Up, more than 2 points slower than sales | Good |
+| Up | Up, more than 2 points faster than sales | Warning |
 | Down | Up or flat | Risk rising |
 | Down | Down, within 5 points of sales | Neutral / watch |
 | Down | Down, more than 5 points faster than sales | Good |
 | Down | Down, more than 5 points slower than sales | Warning |
 
-The last two rows are not in the original brief. They follow the same logic as the "Up" rows.
+The "keeping pace" row and the last two rows are not in the original brief. Keeping pace stops a
+0.1 point difference from flipping Good to Warning. The last two follow the same logic as the "Up" rows.
 Labour force shows "Not found" for now: headcount is in the 10-K text, not in the SEC's number feed.
 
 ### Research and development, Capital expenditure

@@ -26,6 +26,10 @@ for (const t of tickers) {
       for (const line of r.formula) console.log(`      ${line}`);
     }
     if (c.label) console.log(`   Label: ${c.label.name}. ${c.label.reason}`);
+    if (c.trend) {
+      console.log(`   Trend: ${c.trend.columns.join(" | ")}`);
+      for (const r of c.trend.rows) console.log(`      ${r.join(" | ")}`);
+    }
     else console.log(`   ${c.state}. ${c.note}`);
     console.log("");
   });
