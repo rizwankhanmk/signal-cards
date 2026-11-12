@@ -65,6 +65,7 @@
   .head { text-align: center; padding: 0 0 36px; }
   .head h1 { font-size: clamp(26px, 4.6vw, 40px); font-weight: 700; letter-spacing: -.03em; line-height: 1.1; margin: 0 0 8px; text-wrap: balance; }
   .head p { margin: 0; font-size: 15px; }
+  .head .headnote { max-width: 46ch; margin: 18px auto 0; padding: 12px 18px; border-radius: 16px; background: var(--surface); text-wrap: balance; }
 
   /* The small mark beside a label: hollow = good, half = watch, filled = warning. Shape, not colour. */
   .mark { display: inline-block; width: .62em; height: .62em; border-radius: 50%; border: 1.5px solid currentColor; margin-right: .5em; vertical-align: .02em; }
@@ -208,7 +209,7 @@
       <button type="button" data-pref="lang" data-val="acct">Accounting</button><button type="button" data-pref="lang" data-val="plain">Plain English</button>
     </div>
     <div class="seg" role="group" aria-label="Reader">
-      <button type="button" data-pref="reader" data-val="investor">Investor</button><button type="button" data-pref="reader" data-val="coo">COO</button>
+      <button type="button" data-pref="reader" data-val="investor">Investor</button><button type="button" data-pref="reader" data-val="cfo">CFO</button>
     </div>
   </div>
 
@@ -228,7 +229,7 @@
         <button class="chip" type="button" data-try="AAPL">Apple</button>
         <button class="chip" type="button" data-try="COST">Costco</button>
         <button class="chip" type="button" data-try="WDFC">WD-40</button>
-        <button class="chip" type="button" data-try="JPM">JPMorgan</button>
+        <button class="chip" type="button" data-try="NKE">Nike</button>
       </p>
       <p class="tries soon">Coming soon
         <span class="chip">Singapore Airlines</span>
@@ -237,7 +238,7 @@
     </section>
 
     <section id="overview" hidden>
-      <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p></div>
+      <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p><p class="headnote" id="headnote" hidden></p></div>
       <p class="score" id="score" hidden></p>
       <div class="grid" id="grid"></div>
       <div class="cmp" id="compare" hidden></div>
@@ -323,11 +324,12 @@
   const faceDown = (d, n) => canGuess(d.cards[n - 1]) && !guesses(d)[n];
 
   // ---------- The two switches ----------
-  // Wording: accounting terms or plain English. Reader: investor or COO (same cards, different last line).
+  // Wording: accounting terms or plain English. Reader: investor or CFO (same cards, different last line).
   const prefs = { lang: "acct", reader: "investor", ...store.get("sc:prefs") };
   const plain = () => prefs.lang === "plain";
   const W = (o, k) => (plain() && o[k + "_plain"]) || o[k];          // W(card, "signal") -> the name in the chosen wording
-  const READER = { investor: "Investor · verify next", coo: "COO · ask inside" };
+  const READER = { investor: "Investor · verify next", cfo: "CFO · ask inside" };
+  if (!READER[prefs.reader]) prefs.reader = prefs.reader === "coo" ? "cfo" : "investor"; // the second reader used to be the COO
   const paintPrefs = () => document.querySelectorAll("[data-pref]").forEach(b => b.setAttribute("aria-pressed", String(prefs[b.dataset.pref] === b.dataset.val)));
   paintPrefs();
 
@@ -358,7 +360,7 @@
     data = other = null;
     $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false; $("switches").hidden = true;
     $("grid").innerHTML = ""; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("form2").hidden = true; $("source").textContent = "";
-    $("company").textContent = title; $("meta").textContent = why;
+    $("company").textContent = title; $("meta").textContent = why; $("headnote").hidden = true;
   };
   async function load(ticker) {
     if (loaded[ticker]) return loaded[ticker];
@@ -417,6 +419,7 @@
     document.title = `${d.ticker} · Signal Cards`;
     $("company").textContent = d.company;
     $("meta").textContent = `${d.ticker} · ${T.fy} vs ${L.fy} · year ended ${day(T.end)}`;
+    $("headnote").hidden = !d.note; $("headnote").textContent = d.note || "";
     $("grid").innerHTML = d.cards.map((c, i) => tile(d, i + 1)).join("");
     tileToFlip = 0;
     drawScore(d);
@@ -427,6 +430,7 @@
     document.title = `${a.ticker} vs ${b.ticker} · Signal Cards`;
     $("company").textContent = `${a.company} vs ${b.company}`;
     $("meta").textContent = "Same eight signals, side by side. Growth rates compare fairly, whatever the size.";
+    $("headnote").hidden = true;
     $("score").hidden = true;
     const head = d => `<div><b>${esc(d.company)}</b><span>${esc(d.ticker)} · ${esc(d.fiscal.this_year.fy)} vs ${esc(d.fiscal.last_year.fy)} · year ended ${esc(day(d.fiscal.this_year.end))}</span></div>`;
     const notes = [];

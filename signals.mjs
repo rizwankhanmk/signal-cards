@@ -150,13 +150,13 @@ function taxLabel(change, thisR, lastR) {
 }
 
 // The last line of a card, one for each reader. Same card, different question.
-// Investor: what to check in the filing before trusting the number. COO: what to ask inside the business.
-// Never buy or sell advice. Order: [investor, coo] for good, watch, warn.
+// Investor: what to check in the filing before trusting the number. CFO: what to ask inside the business.
+// Never buy or sell advice. Order: [investor, cfo] for good, watch, warn.
 const NEXT = {
   "Inventory": {
     good:  ["Check the inventory note. Lean stock is only good if the shelves weren't empty.", "Ask whether anything ran out. Lean is good. Empty is not."],
     watch: ["Check next quarter's inventory. One year in step proves little.", "Ask which lines are building stock and which are running down."],
-    warn:  ["Read the inventory note: raw materials, or finished goods nobody bought?", "Ask which products are piling up, and who signed the orders."] },
+    warn:  ["Read the inventory note: raw materials, or finished goods nobody bought?", "Ask which products are piling up, and how much cash is tied up in them."] },
   "Accounts receivable": {
     good:  ["Check the bad-debt allowance. Fast collection should not come from writing bills off.", "Ask what changed in collections, and keep doing it."],
     watch: ["Check how long customers take to pay, in the notes. Steady is the goal.", "Ask whether any big customer is paying later than last year."],
@@ -178,9 +178,9 @@ const NEXT = {
     watch: ["Check the breakdown: selling, marketing, head office.", "Ask which overhead line grew fastest."],
     warn:  ["Check what grew: people, advertising, or one-off costs?", "Ask which budgets overran, and what the money bought."] },
   "Effective tax rate": {
-    good:  ["Check the tax note anyway. A steady rate can hide one-offs that cancel out.", "Ask finance whether anything in the tax note is about to change."],
-    watch: ["Read the tax rate reconciliation in the notes. Find the one-off.", "Ask finance what lowered the rate, and whether it repeats."],
-    warn:  ["Read the tax rate reconciliation in the notes. Which year was the odd one?", "Ask finance what raised the rate, and whether it stays."] },
+    good:  ["Check the tax note anyway. A steady rate can hide one-offs that cancel out.", "Ask your tax team whether anything in the tax note is about to change."],
+    watch: ["Read the tax rate reconciliation in the notes. Find the one-off.", "Ask your tax team what lowered the rate, and whether it repeats."],
+    warn:  ["Read the tax rate reconciliation in the notes. Which year was the odd one?", "Ask your tax team what raised the rate, and whether it stays."] },
 };
 const PLAIN_SIGNAL = {
   "Inventory": "Unsold stock", "Accounts receivable": "Unpaid customer bills", "Capital expenditure": "Buildings and equipment",
@@ -260,7 +260,7 @@ export function buildCards(facts, cik, info = {}) {
     ? noCard(signal, "Doesn't apply", `${financialNote}${industry}.`)
     : noCard(signal, "Not found", `Not found in the SEC data for these two years: ${missing.join(", ")}. The company may not report it as its own line. Missing does not mean zero.`);
   // big and small: the one number shown on the tile, and the line under it.
-  const nextFor = (signal, label) => { const pair = label && NEXT[signal]?.[TONE[label.name]]; return pair ? { investor: pair[0], coo: pair[1] } : null; };
+  const nextFor = (signal, label) => { const pair = label && NEXT[signal]?.[TONE[label.name]]; return pair ? { investor: pair[0], cfo: pair[1] } : null; };
   const card = (signal, rows, label, extra = {}) => ({ signal, signal_plain: PLAIN_SIGNAL[signal], next: nextFor(signal, label), what: WHAT[signal], state: "OK", rows, label, tone: label ? TONE[label.name] : null, trend: null, status: "Draft", big: "—", small: "", ...extra });
 
   // 7. The last few years, for context. The label still comes from the latest two years only.
@@ -366,7 +366,13 @@ export function buildCards(facts, cik, info = {}) {
     if (hits.length) lookalikes[c.name] = hits;
   }
 
+  const live = cards.filter(c => c.label).length;
+  const note = isFinancial(info.sic)
+    ? `Banks and insurers don't make or sell goods. These eight signals are built for companies that do, so only ${live === 1 ? "one applies" : `${live} apply`} here.`
+    : null;
+
   return {
+    note,
     company: facts.entityName,
     industry: info.sicDescription ?? null,
     fiscal: { this_year: { fy: fyLabel(thisEnd), end: thisEnd }, last_year: { fy: fyLabel(lastEnd), end: lastEnd } },

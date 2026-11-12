@@ -1,6 +1,6 @@
 # Signal Cards
 
-Read a company's annual report like an investor or a COO, one signal at a time.
+Read a company's annual report like an investor or a CFO, one signal at a time.
 Educational, not financial advice.
 
 ## Run it (any US ticker)
@@ -57,8 +57,8 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   Ticks and the two switches are remembered in your browser for good, per company and fiscal year.
 - Accounting / Plain English: one switch swaps the wording everywhere ("Accounts receivable" becomes "Unpaid customer bills").
   Both wordings are written in `signals.mjs`.
-- Investor / COO: same cards, different last line. The investor's line says what to check in the filing;
-  the COO's says what to ask inside the business. Neither is buy or sell advice. The lines are in `NEXT` in `signals.mjs`.
+- Investor / CFO: same cards, different last line. The investor's line says what to check in the filing;
+  the CFO's says what to ask inside the business. Neither is buy or sell advice. The lines are in `NEXT` in `signals.mjs`.
 - Compare: under the tiles, "Compare with" puts a second company beside the first, signal by signal.
   It says so if their years end on different dates, and "Not comparable" if they follow different accounting rules.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
