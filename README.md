@@ -69,6 +69,8 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   big companies whose annual report landed most recently ("Just filed"); Shuffle draws from those plus a few
   steady examples. The fresh list covers the hundred or so biggest companies on the SEC's list and is worked
   out at most twice a day (`fresh` in `sec.mjs`).
+- The top bar stays in view as you scroll. Home is always one tap away once a company is open, and All eight
+  (or Compare) is one tap away from any card.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
