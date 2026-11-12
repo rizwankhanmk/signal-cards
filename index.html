@@ -5,43 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Signal Cards</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; color: #1d1d1f; }
+  body { font-family: system-ui, sans-serif; max-width: 820px; margin: 2rem auto; padding: 0 1rem; color: #1d1d1f; }
+  h2 { margin: 2.5rem 0 0; padding-top: 1.5rem; border-top: 1px solid #ddd; }
+  .scroll { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
   th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid #ddd; vertical-align: top; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .label { font-size: 1.4rem; margin: 1rem 0; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .label { font-size: 1.25rem; margin: 1rem 0; }
   .muted { color: #6e6e73; font-size: .9rem; }
 </style>
 </head>
 <body>
 <h1 id="title">Loading…</h1>
-<div id="card"></div>
+<p class="muted" id="sub"></p>
+<div id="cards"></div>
 <p class="muted">Educational, not financial advice.</p>
 <script>
   const q = new URLSearchParams(location.search);
   const ticker = (q.get("ticker") || "WDFC").toUpperCase();
-  const fmtK = usd => (usd / 1000).toLocaleString("en-US"); // the 10-K shows USD thousands
+  // Text from the data file is shown as text, never as page code.
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
   fetch(`data/${ticker}.json`).then(r => r.json()).then(d => {
-    const [thisFy, lastFy] = [d.rows[0].this_year.fy, d.rows[0].last_year.fy];
-    document.getElementById("title").textContent = `${d.signal} · ${d.company} · ${thisFy} vs ${lastFy}`;
-    const rows = d.rows.map(r => `
-      <tr>
-        <td>${r.item}</td>
-        <td class="num">${fmtK(r.this_year.usd)}</td>
-        <td class="num">${fmtK(r.last_year.usd)}</td>
-        <td>${r.formula}</td>
-        <td><a href="${r.this_year.url}" target="_blank" rel="noopener">${r.statement}</a></td>
-      </tr>`).join("");
-    document.getElementById("card").innerHTML = `
-      <p class="muted">USD thousands, as shown in the 10-K. Fiscal years end ${d.rows[0].this_year.end.slice(5)}.</p>
-      <table>
-        <tr><th>Item</th><th>${thisFy}</th><th>${lastFy}</th><th>Formula and result</th><th>Source</th></tr>
-        ${rows}
-      </table>
-      <p class="label"><strong>${d.label.name}.</strong> ${d.label.reason}</p>
-      <p class="muted">${d.status}. Tick when you have checked the numbers in the filing.
-        Numbers pulled from the SEC on ${d.fetched_at.slice(0, 10)}.</p>`;
+    const T = d.fiscal.this_year, L = d.fiscal.last_year;
+    document.getElementById("title").textContent = `${d.company} · ${T.fy} vs ${L.fy}`;
+    document.getElementById("sub").innerHTML =
+      `${esc(d.unit)}, as shown in the 10-K. Fiscal years end ${esc(T.end.slice(5))}. ` +
+      `Numbers pulled from the SEC on ${esc(d.fetched_at.slice(0, 10))}. ` +
+      `<a href="${esc(d.filing.url)}" target="_blank" rel="noopener">10-K filed ${esc(d.filing.filed)}</a>.`;
+
+    document.getElementById("cards").innerHTML = d.cards.map((c, n) => {
+      const rows = c.rows.map(r => `
+        <tr>
+          <td>${esc(r.item)}</td>
+          <td class="num">${esc(r.this_year)}</td>
+          <td class="num">${esc(r.last_year)}</td>
+          <td>${r.formula.map(esc).join("<br>")}</td>
+          <td>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
+        </tr>`).join("");
+      const table = c.rows.length ? `
+        <div class="scroll"><table>
+          <tr><th>Item</th><th>${esc(T.fy)}</th><th>${esc(L.fy)}</th><th>Formula and result</th><th>Source</th></tr>
+          ${rows}
+        </table></div>` : "";
+      const label = c.label
+        ? `<p class="label"><strong>${esc(c.label.name)}.</strong> ${esc(c.label.reason)}</p>`
+        : `<p class="label"><strong>${esc(c.state)}.</strong> ${esc(c.note)}</p>`;
+      const draft = c.rows.length ? `<p class="muted">${esc(c.status)}. Tick when you have checked the numbers in the filing.</p>` : "";
+      return `<section><h2>${n + 1}. ${esc(c.signal)}</h2>${table}${label}${draft}</section>`;
+    }).join("");
   }).catch(e => { document.getElementById("title").textContent = `No data for ${ticker}. Run: npm run fetch`; });
 </script>
 </body>
