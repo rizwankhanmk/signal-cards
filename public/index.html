@@ -36,6 +36,7 @@
   .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; overflow-x: clip; } /* clip: a card sliding in must never widen the page */
   a { color: inherit; }
   button { font: inherit; color: inherit; }
+  button, a, summary, label { -webkit-tap-highlight-color: transparent; } /* no blue flash on tap */
   :focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
   .muted { color: var(--muted); }
   .hair { border: 0; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); }
@@ -54,6 +55,38 @@
   .brand { font-weight: 600; text-decoration: none; letter-spacing: -.01em; display: inline-flex; align-items: center; min-height: 44px; }
   .ghost { background: none; border: 0; padding: 6px 0; min-height: 44px; cursor: pointer; color: var(--muted); font-size: 14px; }
   .ghost:hover { color: var(--text); }
+  /* Icon buttons in the top bar: settings, and light or dark */
+  .iconbtn { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+             background: none; color: var(--muted); cursor: pointer; }
+  .iconbtn:hover, .iconbtn[aria-expanded="true"] { color: var(--text); background: var(--surface); }
+  .iconbtn svg { width: 22px; height: 22px; }
+  .barnav .iconbtn + .iconbtn { margin-left: -6px; }
+
+  /* The first-visit explainer */
+  .intro { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 20px;
+           background: color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .intro-card { width: min(400px, 100%); padding: 28px 26px 22px; border-radius: 26px; text-align: center; background: var(--bg);
+                border: 1px solid color-mix(in srgb, var(--text) 12%, transparent); box-shadow: 0 24px 60px color-mix(in srgb, #000 22%, transparent); }
+  .intro-step { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .intro-card h2 { margin: 0 0 10px; font-size: 30px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
+  .intro-text { margin: 0 auto; max-width: 30ch; font-size: 17px; color: var(--muted); text-wrap: balance; }
+  .intro-art { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 132px; margin: 20px 0 18px; padding: 16px;
+               border-radius: 18px; background: var(--surface); }
+  .art-pill { padding: 10px 26px; border-radius: 999px; background: var(--bg); font-size: 17px; font-weight: 500; }
+  .art-go { padding: 8px 20px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 15px; font-weight: 500; }
+  .art-num { font-size: 40px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
+  .art-vs { font-size: 13px; color: var(--muted); }
+  .art-row { display: flex; gap: 6px 14px; flex-wrap: wrap; justify-content: center; align-items: center; font-size: 15px; font-weight: 500; }
+  .art-row .mark { margin-right: -8px; }
+  .art-link { font-size: 30px; font-weight: 600; letter-spacing: -.02em; text-decoration: underline dotted; text-underline-offset: 6px; }
+  .intro-actions { display: flex; justify-content: space-between; align-items: center; }
+  .intro-actions .go { min-width: 110px; }
+
+  /* Placeholder tiles while a company loads */
+  .tile.skel { cursor: default; background: linear-gradient(100deg, var(--surface) 30%, color-mix(in srgb, var(--surface) 55%, var(--bg)) 50%, var(--surface) 70%) 0 0 / 300% 100%; animation: shimmer 1.3s linear infinite; }
+  .tile.skel:hover { transform: none; }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+  @media (prefers-reduced-motion: reduce) { .tile.skel { animation: none; } }
 
   /* Search box */
   .ask { text-align: center; padding: 9vh 0 6vh; }
@@ -246,7 +279,14 @@
   .steps small { display: block; color: var(--muted); font-size: 12px; }
 
   /* The two switches */
-  .switches { display: flex; gap: 10px 14px; justify-content: center; flex-wrap: wrap; padding: 2px 0 10px; }
+  /* The settings panel drops down from the button in the top bar */
+  .switches { position: absolute; right: 0; top: calc(100% + 2px); z-index: 8; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+              width: min(300px, calc(100vw - 40px)); padding: 16px 16px 10px; border-radius: 20px; background: var(--bg);
+              border: 1px solid color-mix(in srgb, var(--text) 14%, transparent); box-shadow: 0 16px 40px color-mix(in srgb, #000 18%, transparent); }
+  .set-title { margin: 6px 0 0; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .set-title:first-child { margin-top: 0; }
+  .switches .linkish { margin-top: 4px; font-size: 14px; color: var(--muted); }
+  .headbtns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 14px 0 0 !important; }
   .seg { display: inline-flex; padding: 3px; border-radius: 999px; background: var(--surface); }
   .seg button { position: relative; border: 0; background: none; padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
   .seg button::after { content: ""; position: absolute; inset: -4px 0; } /* a taller area to tap */
@@ -255,7 +295,7 @@
   .hero .next small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
 
   /* Compare two companies */
-  .vs { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: 34px 0 0; font-size: 15px; color: var(--muted); }
+  .vs { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin: -18px 0 26px; font-size: 15px; color: var(--muted); }
   .vs .box { width: min(17rem, 100%); }
   .vs input { font-size: 16px; padding: 9px 16px; }
   .cmp-head, .cmp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -303,8 +343,7 @@
   @keyframes bounce { 0% { transform: scale(.86); } 45% { transform: scale(1.28) translateY(-3px); } 100% { transform: scale(1); } }
   /* On a phone, keep the header short so the tiles start high on the screen */
   @media (max-width: 699px) {
-    .switches { flex-wrap: nowrap; gap: 6px; padding: 0 0 6px; }
-    .seg button { padding: 8px 11px; font-size: 12px; }
+    .ask.small { padding-top: 0; }
     .ask.small { padding: 4px 0 14px; }
     .ask.small input { font-size: 16px; padding: 9px 16px; }
     .ask.small .go { font-size: 15px; padding: 9px 16px; }
@@ -314,7 +353,7 @@
     .score { margin: -8px 0 14px; font-size: 14px; gap: 2px 12px; }
     .score .ghost { min-height: 36px; }
   }
-  @media (max-width: 370px) { .seg button { padding: 8px 8px; font-size: 11px; } }
+  @media (max-width: 370px) { .seg button { padding: 10px 12px; } }
   @media (prefers-reduced-motion: reduce) { .brand span { transition: none; } .tab svg { transition: none; } .tab.bounce svg { animation: none; } }
   [hidden] { display: none !important; }
 </style>
@@ -326,16 +365,40 @@
     <span class="barnav">
       <button class="pill" type="button" id="gohome" hidden>Home</button>
       <button class="pill" type="button" id="goall" data-card="0" hidden>All cards</button>
-      <button class="ghost" id="theme" type="button" aria-label="Switch between light and dark"></button>
+      <button class="iconbtn" id="gear" type="button" aria-label="Settings" aria-expanded="false" aria-controls="switches">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
+      </button>
+      <button class="iconbtn" id="theme" type="button"></button>
     </span>
+    <!-- Settings: set once, so they live behind the button instead of on every screen -->
+    <div class="switches" id="switches" hidden>
+      <p class="set-title">Wording</p>
+      <div class="seg" role="group" aria-label="Wording">
+        <button type="button" data-pref="lang" data-val="acct">Accounting</button><button type="button" data-pref="lang" data-val="plain">Plain English</button>
+      </div>
+      <p class="set-title">Last line of each card</p>
+      <div class="seg" role="group" aria-label="Reader">
+        <button type="button" data-pref="reader" data-val="investor">Investor</button><button type="button" data-pref="reader" data-val="cfo">CFO</button>
+      </div>
+      <p class="set-title">Appearance</p>
+      <div class="seg" role="group" aria-label="Appearance">
+        <button type="button" data-look="auto">Auto</button><button type="button" data-look="light">Light</button><button type="button" data-look="dark">Dark</button>
+      </div>
+      <button class="linkish" type="button" data-how>How it works</button>
+    </div>
   </div>
 
-  <div class="switches" id="switches" hidden>
-    <div class="seg" role="group" aria-label="Wording">
-      <button type="button" data-pref="lang" data-val="acct">Accounting</button><button type="button" data-pref="lang" data-val="plain">Plain English</button>
-    </div>
-    <div class="seg" role="group" aria-label="Reader">
-      <button type="button" data-pref="reader" data-val="investor">Investor</button><button type="button" data-pref="reader" data-val="cfo">CFO</button>
+  <!-- Shown once, the first time someone opens the app -->
+  <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introtitle" hidden>
+    <div class="intro-card">
+      <p class="intro-step" id="introstep"></p>
+      <h2 id="introtitle"></h2>
+      <p class="intro-text" id="introtext"></p>
+      <div class="intro-art" id="introart" aria-hidden="true"></div>
+      <div class="intro-actions">
+        <button class="ghost" type="button" id="introskip">Skip</button>
+        <button class="go" type="button" id="intronext">Next</button>
+      </div>
     </div>
   </div>
 
@@ -351,6 +414,7 @@
         </div>
         <button class="go">Read</button>
       </form>
+      <p class="tries" id="recent" hidden></p>
       <p class="tries"><span id="trylabel">Try</span>
         <span id="picks">
           <button class="chip" type="button" data-try="AAPL">Apple</button>
@@ -359,11 +423,23 @@
         </span>
         <button class="ghost shuffle" type="button" id="shuffle" aria-label="Show three other companies">↻ Shuffle</button>
       </p>
-      <p class="soonline">Coming soon: Singapore Airlines, Tata</p>
+      <p class="soonline">Coming soon: Singapore Airlines, Tata · <button class="linkish" type="button" data-how>How it works</button></p>
     </section>
 
     <section id="overview" hidden>
-      <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p><p class="headnote" id="headnote" hidden></p></div>
+      <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p><p class="headnote" id="headnote" hidden></p>
+        <p class="headbtns" id="headbtns" hidden>
+          <button class="pill" type="button" id="cmpbtn">Compare</button>
+          <button class="pill" type="button" id="stop" hidden>Stop comparing</button>
+        </p>
+      </div>
+      <form class="vs" id="form2" hidden>
+        <label for="q2" id="vslabel">Compare with</label>
+        <div class="box">
+          <input id="q2" placeholder="another company" autocomplete="off" spellcheck="false" maxlength="40" role="combobox" aria-expanded="false" aria-controls="hits2" aria-autocomplete="list">
+          <ul class="hits" id="hits2" role="listbox" hidden></ul>
+        </div>
+      </form>
       <p class="score" id="score" hidden></p>
       <div class="grid" id="grid"></div>
       <p class="tries after" id="after" hidden></p>
@@ -371,14 +447,6 @@
       <p class="key" id="key" hidden>
         <span><i class="mark good"></i>Good</span><span><i class="mark watch"></i>Watch</span><span><i class="mark warn"></i>Warning</span>
       </p>
-      <form class="vs" id="form2" hidden>
-        <label for="q2" id="vslabel">Compare with</label>
-        <div class="box">
-          <input id="q2" placeholder="another company" autocomplete="off" spellcheck="false" maxlength="40" role="combobox" aria-expanded="false" aria-controls="hits2" aria-autocomplete="list">
-          <ul class="hits" id="hits2" role="listbox" hidden></ul>
-        </div>
-        <button class="ghost" type="button" id="stop" hidden>Stop comparing</button>
-      </form>
     </section>
 
     <article id="detail" hidden></article>
@@ -467,15 +535,83 @@
   // Follows the computer's setting until you press the button; then it remembers your choice.
   const root = document.documentElement;
   const isDark = () => root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-  const paintTheme = () => { $("theme").textContent = isDark() ? "Light" : "Dark"; };
-  try { const saved = localStorage.getItem("theme"); if (saved === "dark" || saved === "light") root.dataset.theme = saved; } catch {}
-  $("theme").addEventListener("click", () => {
-    root.dataset.theme = isDark() ? "light" : "dark";
-    try { localStorage.setItem("theme", root.dataset.theme); } catch {}
+  // The button shows where a tap takes you: a sun while it is dark, a moon while it is light.
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>';
+  const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
+  const paintTheme = () => {
+    $("theme").innerHTML = isDark() ? SUN : MOON;
+    $("theme").setAttribute("aria-label", isDark() ? "Switch to light" : "Switch to dark");
+    const look = root.dataset.theme || "auto";
+    document.querySelectorAll("[data-look]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
+  };
+  const setLook = look => { // "auto" follows the device; "light" and "dark" are remembered
+    if (look === "auto") delete root.dataset.theme; else root.dataset.theme = look;
+    try { look === "auto" ? localStorage.removeItem("theme") : localStorage.setItem("theme", look); } catch {}
     paintTheme();
-  });
+  };
+  try { const saved = localStorage.getItem("theme"); if (saved === "dark" || saved === "light") root.dataset.theme = saved; } catch {}
+  $("theme").addEventListener("click", () => setLook(isDark() ? "light" : "dark"));
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintTheme);
   paintTheme();
+
+  // ---------- Settings: behind one button in the top bar ----------
+  const closeSettings = () => { $("switches").hidden = true; $("gear").setAttribute("aria-expanded", "false"); };
+  $("gear").addEventListener("click", e => {
+    e.stopPropagation();
+    const open = $("switches").hidden;
+    $("switches").hidden = !open; $("gear").setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", e => {
+    const look = e.target.closest("[data-look]");
+    if (look) setLook(look.dataset.look);
+  });
+  // While the panel is open, a tap anywhere else only closes it. It does not also press what was underneath.
+  document.addEventListener("click", e => {
+    if ($("switches").hidden || e.target.closest("#switches, #gear")) return;
+    closeSettings(); e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("switches").hidden) closeSettings(); });
+
+  // ---------- How it works: three short screens, shown once ----------
+  const INTRO = [
+    ["Pick a company.", "Type a name, or tap a suggestion. The numbers come straight from its annual report.",
+     '<span class="art-pill">Apple</span><span class="art-go">Read</span>'],
+    ["Guess the flag.", "Each card shows two numbers. Good, watch or warning? Tap your guess and the card flips.",
+     '<span class="art-num">+154.3%</span><span class="art-vs">vs sales +15.1%</span><span class="art-row"><i class="mark good"></i>Good<i class="mark watch"></i>Watch<i class="mark warn"></i>Warning</span>'],
+    ["Check the proof.", "Every number links to its place in the filing. Tick a card once you have checked it yourself.",
+     '<span class="art-link">83,292</span><span class="art-vs">opens the filing at that number</span><span class="art-row">☑ Checked</span>'],
+  ];
+  let introAt = 0;
+  const paintIntro = () => {
+    const [title, text, art] = INTRO[introAt];
+    $("introstep").textContent = `${introAt + 1} of ${INTRO.length}`;
+    $("introtitle").textContent = title; $("introtext").textContent = text; $("introart").innerHTML = art;
+    $("intronext").textContent = introAt === INTRO.length - 1 ? "Start" : "Next";
+  };
+  const openIntro = () => { introAt = 0; paintIntro(); $("intro").hidden = false; closeSettings(); $("intronext").focus(); };
+  const closeIntro = () => { $("intro").hidden = true; try { localStorage.setItem("sc:intro", "1"); } catch {} };
+  $("intronext").addEventListener("click", () => { if (introAt < INTRO.length - 1) { introAt++; paintIntro(); } else closeIntro(); });
+  $("introskip").addEventListener("click", closeIntro);
+  $("intro").addEventListener("click", e => { if (e.target === $("intro")) closeIntro(); }); // a tap on the backdrop
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("intro").hidden) closeIntro(); });
+  document.addEventListener("click", e => { if (e.target.closest("[data-how]")) openIntro(); });
+  // The first time, on the home screen only: someone following a link to a company should see the company.
+  let seenIntro = true;
+  try { seenIntro = localStorage.getItem("sc:intro") === "1"; } catch {}
+  if (!seenIntro && !new URLSearchParams(location.search).get("ticker")) openIntro();
+
+  // ---------- Recently read: the last few companies you opened, on the home screen ----------
+  const recents = () => { try { const r = JSON.parse(localStorage.getItem("sc:recent")); return Array.isArray(r) ? r.filter(c => c && c.ticker && c.label) : []; } catch { return []; } };
+  const remember = d => {
+    const list = [{ ticker: d.ticker, label: shortName(d.company) }, ...recents().filter(c => c.ticker !== d.ticker)].slice(0, 6);
+    try { localStorage.setItem("sc:recent", JSON.stringify(list)); } catch {}
+  };
+  const paintRecent = () => {
+    const list = recents().slice(0, 4);
+    $("recent").hidden = !list.length;
+    $("recent").innerHTML = list.length ? `Recent ${list.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}` : "";
+  };
+  paintRecent();
 
   // ---------- What this browser remembers ----------
   // Your guesses and your "checked" ticks, per company and fiscal year. Kept in this browser only.
@@ -569,10 +705,18 @@
   const isOpen = key => !!folds[key];
   const fail = (title, why) => {
     data = other = null;
-    $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false; $("switches").hidden = true;
-    $("grid").innerHTML = ""; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("after").hidden = true; $("form2").hidden = true; $("source").textContent = "";
+    $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false;
+    $("grid").innerHTML = ""; $("grid").hidden = false; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("after").hidden = true;
+    $("form2").hidden = true; $("headbtns").hidden = true; $("source").textContent = "";
     $("company").textContent = title; $("meta").textContent = why; $("headnote").hidden = true;
   };
+  // While a company is being fetched: its name, and grey placeholder tiles where the cards will be.
+  const loading = (ticker, vs) => {
+    const known = t => [...recents(), ...pool].find(c => c.ticker === t)?.label ?? t;
+    fail(`Reading ${known(ticker)}${vs ? ` and ${known(vs)}` : ""}…`, "");
+    $("grid").innerHTML = Array.from({ length: 8 }, () => `<div class="tile skel" aria-hidden="true"></div>`).join("");
+  };
+  let cmpOpen = false; // whether the "Compare with" box is showing
   async function load(ticker) {
     if (loaded[ticker]) return loaded[ticker];
     const r = await fetch(`/api/cards?ticker=${encodeURIComponent(ticker)}`);
@@ -615,11 +759,12 @@
     document.body.classList.toggle("has-tabbar", !!ticker);
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
-      $("ask").hidden = false; $("overview").hidden = $("detail").hidden = $("switches").hidden = true; $("source").textContent = ""; $("q").value = "";
+      $("ask").hidden = false; $("overview").hidden = $("detail").hidden = true; $("source").textContent = ""; $("q").value = "";
+      paintRecent();
       return;
     }
     if (!data || data.ticker !== ticker || (other?.ticker || "") !== vs) {
-      if (!loaded[ticker] || (vs && !loaded[vs])) fail(`Reading ${ticker}${vs ? ` and ${vs}` : ""}…`, "");
+      if (!loaded[ticker] || (vs && !loaded[vs])) loading(ticker, vs);
       try {
         const [a, b] = await Promise.all([load(ticker), vs ? load(vs) : null]);
         const now = where();
@@ -631,16 +776,17 @@
     }
     const d = data, T = d.fiscal.this_year, L = d.fiscal.last_year;
     $("q").value = d.company;
-    $("switches").hidden = false;
+    remember(d);
     $("source").innerHTML = other && !card ? `${sourceLine(d)}<br>${sourceLine(other)}` : sourceLine(d);
     $("ask").hidden = !!card; $("overview").hidden = !!card; $("detail").hidden = !card;
     if (after) return drawCheckpoint(d, after);
     if (card) return drawCard(d, card);
 
-    $("key").hidden = false; $("form2").hidden = false; $("q2").value = "";
+    $("key").hidden = false; $("q2").value = "";
+    $("headbtns").hidden = false; $("form2").hidden = !cmpOpen;   // Compare sits under the name; its box opens on a tap
+    $("cmpbtn").textContent = other ? "Compare with someone else" : "Compare";
     $("grid").hidden = !!other; $("compare").hidden = !other; $("stop").hidden = !other;
     if (other) $("after").hidden = true;
-    $("vslabel").textContent = other ? "Compare with someone else" : "Compare with";
     if (other) return drawCompare(d, other);
 
     document.title = `${d.ticker} · Signal Cards`;
@@ -895,9 +1041,15 @@
   const noMatch = text => `No US-listed company matches "${text}". Check the spelling, or try its ticker.`;
   searchBox($("q"), $("hits"), $("form"), t => go(t),
     text => { history.pushState(null, "", "./"); $("ask").classList.remove("small"); fail("Nothing to read.", noMatch(text)); });
-  searchBox($("q2"), $("hits2"), $("form2"), t => { if (data && t !== data.ticker) go(data.ticker, 0, t); },
+  searchBox($("q2"), $("hits2"), $("form2"), t => { if (data && t !== data.ticker) { cmpOpen = false; go(data.ticker, 0, t); } },
     text => { $("q2").value = ""; $("q2").placeholder = "no match, try again"; });
-  $("stop").addEventListener("click", () => data && go(data.ticker, 0, ""));
+  $("stop").addEventListener("click", () => { cmpOpen = false; if (data) go(data.ticker, 0, ""); });
+  // The Compare button under the company's name opens the box, and puts the cursor in it.
+  $("cmpbtn").addEventListener("click", () => {
+    cmpOpen = !cmpOpen;
+    $("form2").hidden = !cmpOpen;
+    if (cmpOpen) { $("q2").placeholder = "another company"; $("q2").focus(); }
+  });
 
   // ---------- Clicks and keys ----------
   // Tapping the name swaps its two words, for fun, and takes you home.

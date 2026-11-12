@@ -80,6 +80,13 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - On a phone the bottom bar has Previous in the left corner and Next in the right on every card, greyed out
   at either end. On a computer a "Next" button sits under each revealed card. When every card is flipped, the
   app suggests three more companies.
+- The first time someone opens the home screen, three short screens explain the app. "How it works" on the
+  home screen and in Settings shows them again.
+- Settings sit behind one button in the top bar: wording, which reader's line to show, and appearance (auto,
+  light, dark). The sun or moon beside it switches light and dark in one tap.
+- The home screen lists the last few companies you opened, under "Recent".
+- While a company loads, grey placeholder tiles stand where the cards will be.
+- Compare is a button under the company's name. It opens a box to pick the second company.
 - A revealed card shows the label, the line and the reader's line. The proof is folded into rows you tap to
   open: The numbers, What an analyst would quote, The last few years, and How this label is decided (the rule
   table with the row that applied marked). The rows you open stay open on the next card.
