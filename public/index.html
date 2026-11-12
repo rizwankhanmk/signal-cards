@@ -245,16 +245,21 @@
   .nextpill { margin-top: 30px; padding: 0 22px; min-height: 44px; font-size: 15px; }
   @media (max-width: 699px) {
     .barnav .pill, .nextpill { display: none; }
-    .tabbar { gap: 14px; }
-    .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; justify-content: center; gap: 28px;
+    .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; justify-content: center; gap: 10px;
               padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent);
               -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
     .tabbar[hidden] { display: none; }
-    .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px; min-height: 50px;
+    .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: min(76px, 21vw); min-height: 50px;
            background: none; border: 0; padding: 2px 8px; font-size: 11px; font-weight: 500; color: var(--muted); cursor: pointer; }
     .tab svg { width: 26px; height: 26px; color: var(--text); transition: transform .12s ease; }
     .tab:active svg { transform: scale(.86); }
     .tab.bounce svg { animation: bounce .34s ease; }
+    /* On a card: Previous in the left corner, Next in the right corner, always there. Greyed at either end. */
+    #tabprev { margin-right: auto; }
+    #tabnext { margin-left: auto; }
+    .tab { -webkit-tap-highlight-color: transparent; } /* no blue flash on tap; the bounce is the feedback */
+    .tab:disabled { opacity: .28; cursor: default; }
+    .tab:disabled:active svg { transform: none; }
     body.has-tabbar footer { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   }
   @keyframes bounce { 0% { transform: scale(.86); } 45% { transform: scale(1.28) translateY(-3px); } 100% { transform: scale(1); } }
@@ -342,6 +347,10 @@
   </main>
 
   <nav class="tabbar" id="tabbar" aria-label="Go to" hidden>
+    <button class="tab" type="button" id="tabprev" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m11 6-6 6 6 6"/></svg>
+      Previous
+    </button>
     <button class="tab" type="button" id="tabhome">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.2V19a1.5 1.5 0 0 0 1.5 1.5h2.8v-5.3h4.4v5.3H17a1.5 1.5 0 0 0 1.5-1.5V9.2"/></svg>
       Home
@@ -531,7 +540,7 @@
     $("goall").hidden = !card;                          // on a single card
     $("goall").textContent = $("taballlabel").textContent = vs ? "Compare" : "All cards";
     $("tabbar").hidden = !ticker; $("taball").hidden = !card;   // the same two buttons, at the bottom on a phone
-    $("tabnext").hidden = !card;                                // and Next, so the game keeps moving (hidden on the last card)
+    $("tabprev").hidden = $("tabnext").hidden = !card;          // Previous and Next: on every card, in the two corners
     document.body.classList.toggle("has-tabbar", !!ticker);
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
@@ -613,7 +622,8 @@
   function drawCard(d, n) {
     if (n > d.cards.length) return go(d.ticker, 0); // a link to a card this company does not have
     const c = d.cards[n - 1], T = d.fiscal.this_year, L = d.fiscal.last_year;
-    $("tabnext").hidden = n >= d.cards.length;
+    $("tabprev").disabled = n <= 1;                 // greyed on the first card
+    $("tabnext").disabled = n >= d.cards.length;    // and on the last one
     // What an analyst would quote: one or two ratios beside the growth rate.
     const ratios = c.ratios?.length ? `
       <div class="proof">
@@ -773,6 +783,7 @@
   $("tabhome").addEventListener("click", e => press(e.currentTarget, () => go("")));
   $("taball").addEventListener("click", e => press(e.currentTarget, () => { if (data && where().card) go(data.ticker, 0); }));
   $("tabnext").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card && card < data.cards.length) go(data.ticker, card + 1); }));
+  $("tabprev").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card > 1) go(data.ticker, card - 1); }));
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);
