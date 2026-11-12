@@ -16,7 +16,8 @@ How it works:
 - `sec.mjs` finds the company in the SEC's ticker list, pulls its numbers and saves them in `data/` for a day.
 - `signals.mjs` turns those numbers into cards. No numbers are typed in anywhere.
 - Numbers show in USD millions when every figure is a whole million, otherwise in USD thousands, to match the 10-K.
-- Only companies that file a 10-K are covered. Foreign companies listed in the US file a different form.
+- Only companies that file a 10-K are covered. Companies based outside the US file a 20-F or 40-F under
+  different rules; the app says so plainly when you pick one.
 
 ## Put it online (Vercel)
 
@@ -72,9 +73,19 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - Home is always one tap away once a company is open, and All eight (or Compare) is one tap away from any card.
   On a phone they are icons in a bar at the bottom, under your thumb, and bounce when pressed. On a computer they
   are buttons in the top bar, which stays in view as you scroll.
+- On a phone the bottom bar also has Next, so the game keeps moving without scrolling. On a computer a
+  "Next" button sits under each revealed card. When every card is flipped, the app suggests three more companies.
+- It can be added to a phone's home screen as an app: `public/` holds the icon (`icon.svg` and PNG sizes made
+  from it), a web manifest and a link-preview image.
 - Tapping the name swaps its words, "Signal Cards" to "Card Signals" and back, and takes you home.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
+
+## Tests
+
+`npm test` runs `test/cards.test.mjs`: every row of the label rules below, the formulas, units, restated
+figures, the inventory fallback, the trend table and the number links. It needs no network and no `.env`.
+Every number in the tests is made up.
 
 ## Label rules
 

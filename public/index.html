@@ -4,6 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Signal Cards</title>
+<meta name="description" content="Type a company. Read its annual report in eight numbers, and guess the flag before each card flips. Educational, not financial advice.">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1d1d1f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-title" content="Signal Cards">
+<meta property="og:title" content="Signal Cards">
+<meta property="og:description" content="Read any US company's annual report in eight numbers. Guess the flag before each card flips.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://signal-cards.vercel.app/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,7 +33,7 @@
   body { margin: 0; background: var(--bg); color: var(--text);
          font-family: Inter, system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
          font-size: 17px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
-  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; overflow-x: clip; } /* clip: a card sliding in must never widen the page */
   a { color: inherit; }
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
@@ -48,6 +60,7 @@
   .ask.small { padding: 3vh 0 4vh; }
   .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 14px; text-wrap: balance; }
   .ask.small .motto, .ask.small .lede, .ask.small .tries { display: none; }
+  .tries.after { margin: 26px 0 0; }
   .lede { font-size: 19px; color: var(--muted); margin: 0 0 34px; }
   form { display: flex; gap: 8px; justify-content: center; }
   .box { position: relative; width: min(21rem, 100%); }
@@ -148,7 +161,6 @@
   @media (prefers-reduced-motion: reduce) {
     .tile.flipped, .fresh .reveal, .fresh .reveal *, .fresh .hair, .fresh .proof { animation: none !important; }
     .tile, .guess button { transition: none; }
-    #detail.slide-next, #detail.slide-prev { animation: none; }
   }
   .tick { display: flex; gap: 10px; align-items: center; font-size: 15px; margin: 8px 0 0; padding: 10px 0; min-height: 44px; cursor: pointer; width: fit-content; }
   .tick input { width: 18px; height: 18px; margin: 0; padding: 0; accent-color: var(--text); border-radius: 4px; }
@@ -185,6 +197,7 @@
   #detail.slide-prev { animation: fromLeft .28s ease both; }
   .swipe-hint { display: none; text-align: center; font-size: 14px; color: var(--muted); margin: 6px 0 0; }
   @media (hover: none) and (pointer: coarse) { .swipe-hint { display: block; } }
+  @media (prefers-reduced-motion: reduce) { #detail.slide-next, #detail.slide-prev { animation: none; } }
   .steps { display: flex; justify-content: space-between; gap: 16px; padding: 44px 0 0; font-size: 15px; }
   .steps button { background: none; border: 0; padding: 6px 0; cursor: pointer; text-align: left; }
   .steps button:last-child { text-align: right; margin-left: auto; }
@@ -225,10 +238,12 @@
 
   /* On a phone, Home and All eight live in a bar at the bottom, under your thumb. On a computer they stay in the top bar. */
   .tabbar { display: none; }
+  .nextpill { margin-top: 30px; padding: 0 22px; min-height: 44px; font-size: 15px; }
   @media (max-width: 699px) {
-    .barnav .pill { display: none; }
+    .barnav .pill, .nextpill { display: none; }
+    .tabbar { gap: 14px; }
     .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 7; display: flex; justify-content: center; gap: 28px;
-              padding: 6px 16px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent);
+              padding: 6px 12px calc(6px + env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--bg) 88%, transparent);
               -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid color-mix(in srgb, var(--text) 10%, transparent); }
     .tabbar[hidden] { display: none; }
     .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 76px; min-height: 50px;
@@ -239,6 +254,20 @@
     body.has-tabbar footer { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   }
   @keyframes bounce { 0% { transform: scale(.86); } 45% { transform: scale(1.28) translateY(-3px); } 100% { transform: scale(1); } }
+  /* On a phone, keep the header short so the tiles start high on the screen */
+  @media (max-width: 699px) {
+    .switches { flex-wrap: nowrap; gap: 6px; padding: 0 0 6px; }
+    .seg button { padding: 8px 11px; font-size: 12px; }
+    .ask.small { padding: 4px 0 14px; }
+    .ask.small input { font-size: 16px; padding: 9px 16px; }
+    .ask.small .go { font-size: 15px; padding: 9px 16px; }
+    .head { padding-bottom: 20px; }
+    .head h1 { font-size: 24px; margin-bottom: 4px; }
+    .head p { font-size: 13px; }
+    .score { margin: -8px 0 14px; font-size: 14px; gap: 2px 12px; }
+    .score .ghost { min-height: 36px; }
+  }
+  @media (max-width: 370px) { .seg button { padding: 8px 8px; font-size: 11px; } }
   @media (prefers-reduced-motion: reduce) { .brand span { transition: none; } .tab svg { transition: none; } .tab.bounce svg { animation: none; } }
   [hidden] { display: none !important; }
 </style>
@@ -290,6 +319,7 @@
       <div class="head"><h1 id="company"></h1><p class="muted" id="meta"></p><p class="headnote" id="headnote" hidden></p></div>
       <p class="score" id="score" hidden></p>
       <div class="grid" id="grid"></div>
+      <p class="tries after" id="after" hidden></p>
       <div class="cmp" id="compare" hidden></div>
       <p class="key" id="key" hidden>
         <span><i class="mark good"></i>Good</span><span><i class="mark watch"></i>Watch</span><span><i class="mark warn"></i>Warning</span>
@@ -316,6 +346,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
       <span id="taballlabel">All eight</span>
     </button>
+    <button class="tab" type="button" id="tabnext" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+      Next
+    </button>
   </nav>
 
   <footer>
@@ -333,6 +367,9 @@
   const day = iso => { const [y, m, d] = iso.slice(0, 10).split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
   const mark = tone => tone ? `<i class="mark ${esc(tone)}" aria-hidden="true"></i>` : "";
   const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
+
+  // "Tap" on a touch screen, "Click" with a mouse.
+  const TAP = matchMedia("(hover: none)").matches ? "Tap" : "Click";
 
   // ---------- The headline: one line for each day of the week ----------
   const MOTTOS = [
@@ -448,7 +485,7 @@
   const fail = (title, why) => {
     data = other = null;
     $("detail").hidden = true; $("ask").hidden = false; $("overview").hidden = false; $("switches").hidden = true;
-    $("grid").innerHTML = ""; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("form2").hidden = true; $("source").textContent = "";
+    $("grid").innerHTML = ""; $("compare").hidden = true; $("key").hidden = true; $("score").hidden = true; $("after").hidden = true; $("form2").hidden = true; $("source").textContent = "";
     $("company").textContent = title; $("meta").textContent = why; $("headnote").hidden = true;
   };
   async function load(ticker) {
@@ -469,7 +506,7 @@
         <span class="t-top"><span class="t-name">${esc(W(c, "signal"))}</span>${c.rows.length && !down ? `<span class="badge">${ch[n] ? "Checked" : "Draft"}</span>` : ""}</span>
         <span class="t-big${c.big.length >= 8 ? " long" : ""}">${esc(c.big)}</span>
         <span class="t-small">${esc(c.small)}</span>
-        <span class="t-label">${down ? "Tap to guess" : mark(c.tone) + esc(c.label ? c.label.name : c.state)}</span>
+        <span class="t-label">${down ? `${TAP} to guess` : mark(c.tone) + esc(c.label ? c.label.name : c.state)}</span>
         <span class="t-result">${esc(result)}</span>
       </button>`;
   }
@@ -481,6 +518,7 @@
     $("goall").hidden = !card;                          // on a single card
     $("goall").textContent = $("taballlabel").textContent = vs ? "Compare" : "All eight";
     $("tabbar").hidden = !ticker; $("taball").hidden = !card;   // the same two buttons, at the bottom on a phone
+    $("tabnext").hidden = !card || card >= 8;                   // and Next, so the game keeps moving
     document.body.classList.toggle("has-tabbar", !!ticker);
     if (!ticker) {
       data = other = null; document.title = "Signal Cards";
@@ -507,6 +545,7 @@
 
     $("key").hidden = false; $("form2").hidden = false; $("q2").value = "";
     $("grid").hidden = !!other; $("compare").hidden = !other; $("stop").hidden = !other;
+    if (other) $("after").hidden = true;
     $("vslabel").textContent = other ? "Compare with someone else" : "Compare with";
     if (other) return drawCompare(d, other);
 
@@ -546,8 +585,12 @@
     const tally = tried.length ? `<b>${caught} of ${tried.length} caught.</b>` : "";
     const cheer = caught === tried.length ? "Clean sweep." : caught * 2 >= tried.length ? "Not bad." : "The exam is tomorrow. Keep reading.";
     $("score").innerHTML = left
-      ? `<span>Catch the flag: guess each label before you flip it.</span> ${tally} <span class="muted">${left} to go</span> <button class="ghost" type="button" id="reveal">Reveal all</button>`
+      ? `<span>Guess each label.</span> ${tally} <span class="muted">${left} to go</span> <button class="ghost" type="button" id="reveal">Reveal all</button>`
       : `${tally} <span>${tried.length ? cheer : "All flipped."}</span> <button class="ghost" type="button" id="again">Play again</button>`;
+    // When every card is flipped, offer the next move: three other companies to read.
+    const others = left ? [] : pool.filter(c => c.ticker !== d.ticker).sort(() => Math.random() - .5).slice(0, 3);
+    $("after").hidden = !others.length;
+    $("after").innerHTML = others.length ? `<span>Read another</span> ${others.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}` : "";
   }
 
   // A number that links to its place in the filing, when we know where that is.
@@ -608,6 +651,7 @@
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
           ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
+          ${next ? `<button class="pill nextpill" type="button" data-card="${n + 1}">Next: ${esc(W(next, "signal"))} →</button>` : ""}
         </div>
         <p class="what">${esc(c.what)}</p>
       </div>
@@ -620,7 +664,7 @@
           ${rows}
         </table></div>
         <label class="tick"><input type="checkbox" id="checked"${checked ? " checked" : ""}> <span><b>${checked ? "Checked" : "Draft"}.</b> I checked these numbers in the <a href="${esc(d.filing.url)}" target="_blank" rel="noopener">filing</a> myself.</span></label>
-        <p class="note muted">${c.rows.some(r => r.this_link) ? "Tap a number to open the filing at that number, highlighted. " : ""}A label is a first screen, not a verdict.</p>
+        <p class="note muted">${c.rows.some(r => r.this_link) ? `${TAP} a number to open the filing at that number, highlighted. ` : ""}A label is a first screen, not a verdict.</p>
       </div>${trend}` : ""}${steps}`;
     justFlipped = 0;
   }
@@ -701,6 +745,7 @@
   };
   $("tabhome").addEventListener("click", e => press(e.currentTarget, () => go("")));
   $("taball").addEventListener("click", e => press(e.currentTarget, () => { if (data && where().card) go(data.ticker, 0); }));
+  $("tabnext").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card && card < 8) go(data.ticker, card + 1); }));
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);

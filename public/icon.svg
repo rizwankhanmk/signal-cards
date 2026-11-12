@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- A card with the three marks: good (hollow), watch (half), warning (filled). -->
+  <rect width="512" height="512" fill="#1d1d1f"/>
+  <rect x="72" y="146" width="368" height="220" rx="48" fill="#f5f5f7"/>
+  <circle cx="152" cy="256" r="32" fill="none" stroke="#2f9e6e" stroke-width="16"/>
+  <circle cx="256" cy="256" r="32" fill="none" stroke="#c58a12" stroke-width="16"/>
+  <path d="M256 224a32 32 0 0 0 0 64z" fill="#c58a12"/>
+  <circle cx="360" cy="256" r="40" fill="#d24b3e"/>
+</svg>

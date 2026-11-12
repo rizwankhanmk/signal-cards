@@ -224,7 +224,7 @@ export function buildCards(facts, cik, info = {}) {
     if (rows.length < 2) continue;
     if (!anchor || rows[0].end > anchor[0].end || (rows[0].end === anchor[0].end && rows[0].val > anchor[0].val)) { anchor = rows; anchorTag = tag; }
   }
-  if (!anchor) throw new Error("No two years of annual sales found in this company's 10-K data. It may file a different form (foreign companies do), or be too new.");
+  if (!anchor) throw new Error("There are not two years of annual sales in its SEC data yet. It may be newly listed, or report its sales in an unusual way.");
   const [thisEnd, lastEnd] = [anchor[0].end, anchor[1].end];
   const gapDays = days(lastEnd, thisEnd);
   if (gapDays < 350 || gapDays > 380) throw new Error(`The two latest sales years are not one year apart: ${thisEnd} and ${lastEnd}.`);
