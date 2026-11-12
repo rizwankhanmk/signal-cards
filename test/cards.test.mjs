@@ -235,6 +235,29 @@ test("negative amounts are written with a proper minus sign", () => {
   assert.equal(cardsOf({ sales: [1000, 1000], ocf: [-3, 2], capex: [7, 5] })["Free cash flow"].rows[0].this_year, "−3");
 });
 
+// ---------- The rule table shown on each card ----------
+test("on every labelled card, the marked row of the rule table gives the same label as the card", () => {
+  let checked = 0;
+  // A spread of made-up companies: growing, shrinking, flat, loss-making, heavily indebted.
+  for (const s of [-30, -8, -1, 0, 1, 9, 11, 40]) for (const i of [-40, -12, -6, -1, 0, 1, 8, 10, 12, 30, 90]) {
+    const sales = [1000 + s * 10, 1000], item = [1000 + i * 10, 1000];
+    const cards = cardsOf({ sales, inventory: item, receivables: item, sga: item, rnd: item, capex: item, cost: [item[0] / 2, 520],
+      tax: [200 + i, 200], pretax: [1000, 1000], ocf: [800 + i * 10, 900], netincome: [900 + s * 10, 950], assets: [5000, 5000], equity: [2500 + i * 20, 2500] });
+    for (const c of Object.values(cards)) {
+      if (!c.label) continue;
+      assert.ok(c.rule && c.rule.hit >= 0, `${c.signal}: no rule row applied (s=${s}, i=${i})`);
+      assert.equal(c.rule.rows[c.rule.hit][1], c.label.name, `${c.signal} with sales ${s}% and item ${i}%`);
+      checked++;
+    }
+  }
+  assert.ok(checked > 500, `only ${checked} cards checked`);
+});
+test("a bank's return on assets rule shows its finer threshold", () => {
+  const bank = { sic: "6021", sicDescription: "National Commercial Banks" };
+  assert.match(roa(13, 10, bank).rule.rows[1][0], /0\.2 points/);
+  assert.match(roa(180, 150).rule.rows[1][0], /1 point on/);
+});
+
 // ---------- The page and the data must agree ----------
 test("the page's PAGE_VERSION matches the data VERSION", async () => {
   const { VERSION } = await import("../sec.mjs");
