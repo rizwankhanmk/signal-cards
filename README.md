@@ -77,8 +77,12 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - Home is always one tap away once a company is open, and All eight (or Compare) is one tap away from any card.
   On a phone they are icons in a bar at the bottom, under your thumb, and bounce when pressed. On a computer they
   are buttons in the top bar, which stays in view as you scroll.
-- On a phone the bottom bar also has Next, so the game keeps moving without scrolling. On a computer a
-  "Next" button sits under each revealed card. When every card is flipped, the app suggests three more companies.
+- On a phone the bottom bar has Previous in the left corner and Next in the right on every card, greyed out
+  at either end. On a computer a "Next" button sits under each revealed card. When every card is flipped, the
+  app suggests three more companies.
+- Moving on from the last of the eight signals stops at a checkpoint: your score for the group, what the
+  revealed cards said, and a choice to go on to Cash and debt or back to all cards. Going backwards, or tapping
+  a tile directly, skips it.
 - It can be added to a phone's home screen as an app: `public/` holds the icon (`icon.svg` and PNG sizes made
   from it), a web manifest and a link-preview image.
 - Tapping the name swaps its words, "Signal Cards" to "Card Signals" and back, and takes you home.

@@ -65,6 +65,14 @@
   .deckhead { grid-column: 1 / -1; font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin: 22px 0 2px; }
   .cmp .deckhead { margin: 44px 0 0; padding-top: 22px; border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); color: var(--muted); }
   .reading { font-size: 17px; font-weight: 500; margin: 14px 0 0; }
+  /* The checkpoint between two groups of cards */
+  .cp-title { font-size: clamp(34px, 7vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0; text-wrap: balance; }
+  .cp-score { font-size: clamp(21px, 3.4vw, 28px); font-weight: 600; letter-spacing: -.02em; margin: 22px 0 0; }
+  .cp-tally { display: flex; gap: 6px 22px; justify-content: center; flex-wrap: wrap; font-size: 16px; color: var(--muted); margin: 16px 0 0; }
+  .cp-next { font-size: 17px; max-width: 40ch; margin: 44px auto 0; text-wrap: balance; }
+  .cp-next small { display: block; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .cp-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 30px 0 0; }
+  .cp-actions .pill { min-height: 48px; padding: 0 20px; font-size: 16px; display: inline-flex; align-items: center; }
   .lede { font-size: 19px; color: var(--muted); margin: 0 0 34px; }
   form { display: flex; gap: 8px; justify-content: center; }
   .box { position: relative; width: min(21rem, 100%); }
@@ -486,16 +494,36 @@
     const q = new URLSearchParams(location.search);
     const n = Number(q.get("card"));
     const ticker = (q.get("ticker") || "").trim().toUpperCase(), vs = (q.get("vs") || "").trim().toUpperCase();
-    return { ticker, card: Number.isInteger(n) && n >= 1 && n <= 40 ? n : 0, vs: vs && vs !== ticker ? vs : "" };
+    const whole = v => { const x = Number(q.get(v)); return Number.isInteger(x) && x >= 1 && x <= 40 ? x : 0; };
+    // after=8 is the checkpoint shown after card 8, before the next group of cards. It takes the place of a card.
+    const after = whole("after");
+    return { ticker, card: after ? 0 : (Number.isInteger(n) && n >= 1 && n <= 40 ? n : 0), after, vs: vs && vs !== ticker ? vs : "" };
   };
   // vs left out: keep the comparison while you stay on the same company, drop it when you pick a new one.
-  const go = (ticker, card = 0, vs) => {
+  const go = (ticker, card = 0, vs, after = 0) => {
     const now = where();
     if (vs === undefined) vs = ticker && ticker === now.ticker ? now.vs : "";
-    slide = card && now.card && ticker === now.ticker && card !== now.card ? (card > now.card ? "next" : "prev") : "";
-    history.pushState(null, "", ticker ? `?ticker=${encodeURIComponent(ticker)}${card ? `&card=${card}` : ""}${vs ? `&vs=${encodeURIComponent(vs)}` : ""}` : "./");
+    const spot = (c, a) => c || (a ? a + 0.5 : 0); // a checkpoint sits between two cards
+    const [from, to] = [spot(now.card, now.after), spot(card, after)];
+    slide = from && to && ticker === now.ticker && from !== to ? (to > from ? "next" : "prev") : "";
+    history.pushState(null, "", ticker ? `?ticker=${encodeURIComponent(ticker)}${card ? `&card=${card}` : ""}${after ? `&after=${after}` : ""}${vs ? `&vs=${encodeURIComponent(vs)}` : ""}` : "./");
     render();
     scrollTo(0, 0);
+  };
+  // Next and Previous, from wherever you are. Moving on from the last card of a group stops at a checkpoint first.
+  const forward = () => {
+    const { ticker, card, after } = where();
+    if (!data) return;
+    if (after) return go(ticker, after + 1);
+    if (!card || card >= data.cards.length) return;
+    if (data.cards[card].deck !== data.cards[card - 1].deck) return go(ticker, 0, undefined, card);
+    go(ticker, card + 1);
+  };
+  const back = () => {
+    const { ticker, card, after } = where();
+    if (!data) return;
+    if (after) return go(ticker, after);
+    if (card > 1) go(ticker, card - 1);
   };
   const fail = (title, why) => {
     data = other = null;
@@ -534,7 +562,8 @@
   }
 
   async function render() {
-    const { ticker, card, vs } = where();
+    const { ticker, card: cardNow, vs, after } = where();
+    const card = cardNow || after;                      // a checkpoint counts as being on a card for the bars
     $("ask").classList.toggle("small", !!ticker);
     $("gohome").hidden = !ticker;                       // anywhere but the home screen
     $("goall").hidden = !card;                          // on a single card
@@ -563,6 +592,7 @@
     $("switches").hidden = false;
     $("source").innerHTML = other && !card ? `${sourceLine(d)}<br>${sourceLine(other)}` : sourceLine(d);
     $("ask").hidden = !!card; $("overview").hidden = !!card; $("detail").hidden = !card;
+    if (after) return drawCheckpoint(d, after);
     if (card) return drawCard(d, card);
 
     $("key").hidden = false; $("form2").hidden = false; $("q2").value = "";
@@ -616,6 +646,41 @@
     $("after").innerHTML = others.length ? `<span>Read another</span> ${others.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}` : "";
   }
 
+  // The pause between two groups of cards: how you did, what comes next, and a choice.
+  const DECK_BLURB = { "Cash and debt": "Four cards. Did the profit turn into cash? How much is left over? What does it owe? What do its assets earn?" };
+  function drawCheckpoint(d, n) {
+    const done = d.cards[n - 1], next = d.cards[n];
+    if (!done || !next || next.deck === done.deck) return go(d.ticker, 0); // not the end of a group
+    const T = d.fiscal.this_year, L = d.fiscal.last_year, g = guesses(d);
+    const nums = d.cards.map((c, i) => i + 1).filter(k => d.cards[k - 1].deck === done.deck && canGuess(d.cards[k - 1]));
+    const left = nums.filter(k => !g[k]).length;
+    const tried = nums.filter(k => g[k] && g[k] !== "skip");
+    const caught = tried.filter(k => g[k] === d.cards[k - 1].tone).length;
+    const score = tried.length ? `${caught} of ${tried.length} caught.${left ? ` ${left} still face down.` : ""}`
+      : left ? `${left} still face down. You can go back and guess them.` : nums.length ? "All revealed." : "";
+    // What the revealed cards said, by mark. Face-down cards are left out so nothing is given away.
+    const shown = nums.filter(k => g[k]).map(k => d.cards[k - 1].tone);
+    const tally = Object.entries(TONES).map(([t, word]) => [t, word, shown.filter(x => x === t).length]).filter(x => x[2])
+      .map(([t, word, count]) => `<span>${mark(t)}${count} ${word.toLowerCase()}</span>`).join("");
+    document.title = `${done.deck} · ${d.ticker} · Signal Cards`;
+    $("tabprev").disabled = $("tabnext").disabled = false;
+    $("detail").classList.remove("fresh", "slide-next", "slide-prev");
+    if (slide) { void $("detail").offsetWidth; $("detail").classList.add(`slide-${slide}`); slide = ""; }
+    $("detail").innerHTML = `
+      <div class="nav"><span class="muted">${esc(done.deck)} · done</span></div>
+      <div class="hero checkpoint">
+        <p class="kicker">${esc(d.company)} · ${esc(T.fy)} vs ${esc(L.fy)}</p>
+        <p class="cp-title">That's ${esc(done.deck.charAt(0).toLowerCase() + done.deck.slice(1))}.</p>
+        ${score ? `<p class="cp-score">${esc(score)}</p>` : ""}
+        ${tally ? `<p class="cp-tally">${tally}</p>` : ""}
+        <p class="cp-next"><small>Next</small>${esc(next.deck)}. ${esc(DECK_BLURB[next.deck] ?? "")}</p>
+        <div class="cp-actions">
+          <button class="go" type="button" data-forward>Go on to ${esc(next.deck)} →</button>
+          <button class="pill" type="button" data-card="0">Back to all cards</button>
+        </div>
+      </div>`;
+  }
+
   // A number that links to its place in the filing, when we know where that is.
   const inFiling = (shown, link) => link ? `<a class="chk" href="${esc(link)}" target="_blank" rel="noopener" title="Open the filing at this number">${esc(shown)}</a>` : esc(shown);
 
@@ -660,7 +725,7 @@
     const steps = `
       <div class="steps">
         ${prev ? `<button type="button" data-card="${n - 1}"><small>Previous</small>← ${esc(W(prev, "signal"))}</button>` : ""}
-        ${next ? `<button type="button" data-card="${n + 1}"><small>Next</small>${esc(W(next, "signal"))} →</button>` : ""}
+        ${next ? `<button type="button" data-forward><small>Next</small>${esc(next.deck !== c.deck ? next.deck : W(next, "signal"))} →</button>` : ""}
       </div>`;
     const top = `
       <div class="nav"><span class="muted">${esc(c.deck ?? "")} · ${n} of ${d.cards.length}</span></div>
@@ -688,7 +753,7 @@
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
           ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
-          ${next ? `<button class="pill nextpill" type="button" data-card="${n + 1}">Next: ${esc(W(next, "signal"))} →</button>` : ""}
+          ${next ? `<button class="pill nextpill" type="button" data-forward>Next: ${esc(next.deck !== c.deck ? next.deck : W(next, "signal"))} →</button>` : ""}
         </div>
         <p class="what">${esc(c.what)}</p>
       </div>
@@ -782,8 +847,8 @@
   };
   $("tabhome").addEventListener("click", e => press(e.currentTarget, () => go("")));
   $("taball").addEventListener("click", e => press(e.currentTarget, () => { if (data && where().card) go(data.ticker, 0); }));
-  $("tabnext").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card && card < data.cards.length) go(data.ticker, card + 1); }));
-  $("tabprev").addEventListener("click", e => press(e.currentTarget, () => { const { card } = where(); if (data && card > 1) go(data.ticker, card - 1); }));
+  $("tabnext").addEventListener("click", e => press(e.currentTarget, forward));
+  $("tabprev").addEventListener("click", e => press(e.currentTarget, back));
   document.addEventListener("click", e => {
     const t = e.target.closest("[data-try]");
     if (t) return go(t.dataset.try);
@@ -808,6 +873,7 @@
       setGuesses(data, g); return render();
     }
     if (e.target.closest("#again")) { setGuesses(data, {}); return render(); }
+    if (e.target.closest("[data-forward]")) return forward(); // a Next button on a card or a checkpoint
     const b = e.target.closest("[data-card]");
     if (!b) return;
     const owner = b.dataset.ticker || data.ticker; // in a comparison, a tile may belong to the other company
@@ -826,11 +892,11 @@
     render();
   });
   document.addEventListener("keydown", e => {
-    const { ticker, card } = where();
-    if (!card || !data || e.target.matches("input")) return;
+    const { ticker, card, after } = where();
+    if ((!card && !after) || !data || e.target.matches("input")) return;
     if (e.key === "Escape") go(ticker);
-    if (e.key === "ArrowLeft" && card > 1) go(ticker, card - 1);
-    if (e.key === "ArrowRight" && card < data.cards.length) go(ticker, card + 1);
+    if (e.key === "ArrowLeft") back();
+    if (e.key === "ArrowRight") forward();
   });
   // Swipe left or right on a card to go to the next or previous one. Tables that scroll sideways are left alone.
   let sx = 0, sy = 0, swiping = false;
@@ -845,12 +911,12 @@
     swiping = false;
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return; // too short, or really a scroll
-    const { ticker, card } = where();
-    if (!card) return;
+    const { card, after } = where();
+    if (!card && !after) return;
     if (!swiped) { swiped = true; try { localStorage.setItem("sc:swiped", "1"); } catch {} }
-    if (dx < 0 && card < data.cards.length) go(ticker, card + 1);
-    else if (dx > 0 && card > 1) go(ticker, card - 1);
-    else render(); // at either end: nothing to move to, but the hint can go
+    const here = location.search;
+    if (dx < 0) forward(); else back();
+    if (location.search === here) render(); // at either end: nothing to move to, but the hint can go
   }, { passive: true });
   addEventListener("popstate", render);
   render();
