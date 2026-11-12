@@ -167,8 +167,12 @@ export async function cardsFor(rawTicker, UA, { fresh = false } = {}) {
   const cik = String(hit.cik).padStart(10, "0");
   const source_api = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
   const facts = await getJson(source_api, UA);
-  if (!facts) throw new Friendly(`The SEC has no financial data for ${hit.name} (${ticker}).`, 404);
-  const sub = await getJson(`https://data.sec.gov/submissions/CIK${cik}.json`, UA); // industry code and document names; fine if missing
+  const sub = await getJson(`https://data.sec.gov/submissions/CIK${cik}.json`, UA); // industry code, forms and document names; fine if missing
+  // Companies based outside the US file a 20-F or 40-F, not a 10-K, and follow different accounting rules.
+  const forms = Array.isArray(sub?.filings?.recent?.form) ? sub.filings.recent.form : [];
+  const abroad = !forms.includes("10-K") && forms.find(f => f === "20-F" || f === "40-F");
+  const elsewhere = `${hit.name} is based outside the US and reports under different rules (it files a ${abroad}, not a 10-K). Companies like this are on the way, along with Singapore and India.`;
+  if (!facts) throw new Friendly(abroad ? elsewhere : `The SEC has no financial data for ${hit.name} (${ticker}).`, 404);
   // For each recent filing, the name of its main document, so cards can link straight into the 10-K.
   const recent = sub?.filings?.recent, docs = {};
   if (Array.isArray(recent?.accessionNumber) && Array.isArray(recent?.primaryDocument)) {
@@ -176,7 +180,7 @@ export async function cardsFor(rawTicker, UA, { fresh = false } = {}) {
   }
   let built;
   try { built = buildCards(facts, cik, { sic: sub?.sic, sicDescription: sub?.sicDescription, docs }); }
-  catch (e) { throw new Friendly(`${hit.name} (${ticker}): ${e.message}`, 422); }
+  catch (e) { throw new Friendly(abroad ? elsewhere : `${hit.name} (${ticker}): ${e.message}`, 422); }
   const out = { version: VERSION, ticker, cik, fetched_at: new Date().toISOString(), source_api, ...built, company: hit.name, company_sec: facts.entityName };
   await save(file, out);
   return out;

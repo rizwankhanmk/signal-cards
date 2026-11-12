@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "fetch": "node --env-file=.env fetch.mjs",
-    "start": "node --env-file=.env local-server.mjs"
+    "start": "node --env-file=.env local-server.mjs",
+    "test": "node --test"
   }
 }
