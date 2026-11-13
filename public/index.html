@@ -335,6 +335,41 @@
   @media (max-width: 420px) { .cmp-cell { grid-template-columns: 1fr; } .cmp-cell .c-big { font-size: 20px; } }
   .quiet.center { text-align: center; margin-top: 22px; }
   .quiet.center b { font-weight: 600; color: var(--text); }
+  /* The three analysts */
+  .face { border-radius: 50%; display: block; flex: none; }
+  .who { margin: 26px auto 22px; max-width: 30rem; }
+  .who-title { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  .who-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .who-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 6px 12px; border: 0; border-radius: 22px; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .who-btn .face { width: 72px; height: 72px; margin-bottom: 8px; opacity: .55; transition: opacity .15s ease, transform .15s ease; }
+  .who-btn b { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .who-btn span { font-size: 13px; color: var(--muted); }
+  .who-btn:hover .face { opacity: .85; }
+  .who-btn[aria-checked="true"] { background: var(--surface); }
+  .who-btn[aria-checked="true"] .face { opacity: 1; transform: scale(1.06); }
+  .who-story { font-size: 15px; color: var(--muted); margin: 14px 0 0; min-height: 4.4em; }
+  .who-story b { color: var(--text); font-weight: 600; }
+  .who-story small { display: block; font-size: 12px; margin-top: 6px; }
+  .ask.small .who { display: none; }
+  .avbtn .face { width: 32px; height: 32px; }
+  .avmenu { right: 44px; gap: 4px; padding: 14px 10px 10px; }
+  .avmenu .set-title { margin: 0 6px 4px; }
+  .av-opt { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; border-radius: 14px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+  .av-opt .face { width: 44px; height: 44px; }
+  .av-opt b { display: block; font-size: 15px; font-weight: 600; }
+  .av-opt small { font-size: 12px; color: var(--muted); }
+  .av-opt:hover, .av-opt[aria-pressed="true"] { background: var(--surface); }
+  .av-note { font-size: 12px; color: var(--muted); margin: 4px 6px 0; }
+  .ask-flag .as { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
+  .ask-flag .as .face { width: 34px; height: 34px; }
+  .hero .others { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 18px; font-size: 15px; margin: 22px 0 0; }
+  .hero .others small { flex-basis: 100%; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .hero .others span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+  .hero .others b { color: var(--text); font-weight: 600; }
+  .hero .others .face { width: 26px; height: 26px; }
+  .hero .others .mark { margin-right: 0; }
+  @media (max-width: 420px) { .who-btn .face { width: 60px; height: 60px; } .who-btn b { font-size: 15px; } .who-btn span { font-size: 12px; } }
+  @media (prefers-reduced-motion: reduce) { .who-btn .face { transition: none; } }
   .skip { position: absolute; left: 12px; top: -60px; z-index: 20; padding: 10px 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; text-decoration: none; }
   .skip:focus { top: 12px; }
   main:focus { outline: none; }
@@ -406,26 +441,30 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to the content</a>
+<!-- The three analysts. Original drawings, in the style of the app icon. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="av-owl" viewBox="0 0 512 512"><rect width="512" height="512" fill="#3f8a94"/><path d="M118 150L92 40l112 70z" fill="#1d1d1f"/><path d="M394 150l26-110-112 70z" fill="#1d1d1f"/><path d="M256 84c126 0 190 92 190 206 0 96-40 176-84 222H150c-44-46-84-126-84-222C66 176 130 84 256 84z" fill="#1d1d1f"/><path d="M256 330c60 0 108 60 120 182H136c12-122 60-182 120-182z" fill="#2c2c30"/><circle cx="176" cy="250" r="74" fill="#f5f5f7"/><circle cx="336" cy="250" r="74" fill="#f5f5f7"/><circle cx="176" cy="250" r="74" fill="none" stroke="#e6a82e" stroke-width="12"/><circle cx="336" cy="250" r="74" fill="none" stroke="#e6a82e" stroke-width="12"/><path d="M244 244h24" stroke="#e6a82e" stroke-width="12"/><circle cx="182" cy="262" r="26" fill="#1d1d1f"/><circle cx="330" cy="262" r="26" fill="#1d1d1f"/><circle cx="190" cy="254" r="8" fill="#f5f5f7"/><circle cx="338" cy="254" r="8" fill="#f5f5f7"/><path d="M104 236a74 74 0 0 1 144 0z" fill="#2c2c30"/><path d="M264 236a74 74 0 0 1 144 0z" fill="#2c2c30"/><path d="M256 300l30 34-30 40-30-40z" fill="#e6a82e"/></symbol>
+<symbol id="av-bull" viewBox="0 0 512 512"><rect width="512" height="512" fill="#e6a82e"/><path d="M176 216C96 216 34 152 52 36c30 78 80 112 164 124z" fill="#f5f5f7"/><path d="M336 216c80 0 142-64 124-180-30 78-80 112-164 124z" fill="#f5f5f7"/><ellipse cx="70" cy="264" rx="52" ry="30" transform="rotate(-24 70 264)" fill="#2c2c30"/><ellipse cx="442" cy="264" rx="52" ry="30" transform="rotate(24 442 264)" fill="#2c2c30"/><path d="M256 120c130 0 190 96 180 196-8 90-60 196-180 196S84 406 76 316C66 216 126 120 256 120z" fill="#1d1d1f"/><circle cx="184" cy="256" r="40" fill="#f5f5f7"/><circle cx="328" cy="256" r="40" fill="#f5f5f7"/><circle cx="190" cy="242" r="19" fill="#1d1d1f"/><circle cx="334" cy="242" r="19" fill="#1d1d1f"/><circle cx="197" cy="235" r="6" fill="#f5f5f7"/><circle cx="341" cy="235" r="6" fill="#f5f5f7"/><ellipse cx="256" cy="400" rx="116" ry="84" fill="#3a3a40"/><ellipse cx="214" cy="372" rx="16" ry="12" fill="#1d1d1f"/><ellipse cx="298" cy="372" rx="16" ry="12" fill="#1d1d1f"/><path d="M196 418q60 54 120 0z" fill="#f5f5f7"/></symbol>
+<symbol id="av-bear" viewBox="0 0 512 512"><rect width="512" height="512" fill="#7d74b8"/><circle cx="112" cy="140" r="70" fill="#1d1d1f"/><circle cx="400" cy="140" r="70" fill="#1d1d1f"/><circle cx="112" cy="140" r="34" fill="#3a3a40"/><circle cx="400" cy="140" r="34" fill="#3a3a40"/><path d="M256 96c136 0 200 96 200 200 0 124-80 216-200 216S56 420 56 296C56 192 120 96 256 96z" fill="#1d1d1f"/><circle cx="176" cy="262" r="34" fill="#f5f5f7"/><circle cx="336" cy="262" r="34" fill="#f5f5f7"/><circle cx="184" cy="266" r="16" fill="#1d1d1f"/><circle cx="328" cy="266" r="16" fill="#1d1d1f"/><path d="M140 262a36 36 0 0 1 72 0z" fill="#1d1d1f"/><path d="M128 222l96 14" stroke="#f5f5f7" stroke-width="16" stroke-linecap="round"/><path d="M288 196q48-34 96-4" fill="none" stroke="#f5f5f7" stroke-width="16" stroke-linecap="round"/><ellipse cx="256" cy="396" rx="104" ry="80" fill="#d9d2c5"/><path d="M216 352h80l-40 40z" fill="#1d1d1f"/><path d="M206 436h100" stroke="#1d1d1f" stroke-width="14" stroke-linecap="round"/></symbol>
+</defs></svg>
 <div class="wrap">
   <div class="bar">
     <a class="brand" href="./" id="home" aria-label="Signal Cards, home"><span class="w1">Signal</span> <span class="w2">Cards</span></a>
     <span class="barnav">
       <button class="pill" type="button" id="gohome" hidden>Home</button>
       <button class="pill" type="button" id="goall" data-card="0" hidden>All cards</button>
+      <button class="iconbtn avbtn" id="avbtn" type="button" aria-expanded="false" aria-controls="avmenu" hidden></button>
       <button class="iconbtn" id="gear" type="button" aria-label="Settings" aria-expanded="false" aria-controls="switches">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
       </button>
       <button class="iconbtn" id="theme" type="button"></button>
     </span>
     <!-- Settings: set once, so they live behind the button instead of on every screen -->
+    <div class="switches avmenu" id="avmenu" hidden></div>
     <div class="switches" id="switches" hidden>
       <p class="set-title">Wording</p>
       <div class="seg" role="group" aria-label="Wording">
         <button type="button" data-pref="lang" data-val="acct">Accounting</button><button type="button" data-pref="lang" data-val="plain">Plain English</button>
-      </div>
-      <p class="set-title">Last line of each card</p>
-      <div class="seg" role="group" aria-label="Reader">
-        <button type="button" data-pref="reader" data-val="investor">Investor</button><button type="button" data-pref="reader" data-val="cfo">CFO</button>
       </div>
       <p class="set-title">Appearance</p>
       <div class="seg" role="group" aria-label="Appearance">
@@ -454,6 +493,11 @@
     <section class="ask" id="ask">
       <p class="motto" id="motto">Money talks. Learn to listen.</p>
       <p class="lede">Type a company. Read its annual report, one card at a time.</p>
+      <div class="who" id="who">
+        <p class="who-title">Who are you today?</p>
+        <div class="who-row" id="whorow" role="radiogroup" aria-label="Your analyst"></div>
+        <p class="who-story" id="whostory"></p>
+      </div>
       <form id="form">
         <div class="box">
           <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
@@ -535,12 +579,32 @@
   const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const day = iso => { const [y, m, d] = iso.slice(0, 10).split("-"); return `${Number(d)} ${MONTHS[Number(m) - 1]} ${y}`; };
   const mark = tone => tone ? `<i class="mark ${esc(tone)}" aria-hidden="true"></i>` : "";
-  const TONE = { "Most favourable": "good", "Good": "good", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
+  const TONE = { "Most favourable": "good", "Good": "good", "Watch": "watch", "Neutral / watch": "watch", "Warning": "warn", "Risk rising": "warn" };
+  // ---------- The three analysts ----------
+  // You read every card as one of them. Each has its own rulebook (avatars.mjs), so the same numbers
+  // can earn different labels. They are simplified characters for learning, not industry rules.
+  const AV = {
+    owl:  { name: "The Owl",  role: "Lender",          says: "Just pay me back.", story: "You lent this company money. You only want it back, with interest." },
+    bull: { name: "The Bull", role: "Growth investor", says: "Think bigger.",     story: "You own a piece of the company and want it far bigger in five years." },
+    bear: { name: "The Bear", role: "Sceptic",         says: "Prove it.",         story: "You assume the numbers are flattering until shown otherwise." },
+  };
+  const face = a => `<svg class="face" viewBox="0 0 512 512" aria-hidden="true"><use href="#av-${a}"/></svg>`;
+  let avatar = "owl"; // the lender is where a newcomer starts
+  try { const a = JSON.parse(localStorage.getItem("sc:prefs"))?.avatar; if (AV[a]) avatar = a; } catch {}
+  // A company's cards as your analyst reads them: its label, reason, rule table and next step,
+  // plus what the other two said. Cards with nothing to label pass through unchanged.
+  const asAvatar = d => d && ({ ...d, cards: d.cards.map(c => {
+    const me = c.avatars?.[avatar];
+    if (!me) return c;
+    return { ...c, tone: me.tone, label: { name: me.name, reason: me.reason, plain: me.plain }, rule: me.rule,
+      next: me.next ? { investor: me.next, cfo: me.next } : null, trend: c.trend && { ...c.trend, noLabels: true },
+      others: Object.keys(AV).filter(a => a !== avatar).map(a => ({ who: a, tone: c.avatars[a].tone, name: c.avatars[a].name })) };
+  }) });
 
   // "Tap" on a touch screen, "Click" with a mouse.
   const TAP = matchMedia("(hover: none)").matches ? "Tap" : "Click";
   // The data shape this page understands. Must match VERSION in sec.mjs; a test checks that it does.
-  const PAGE_VERSION = 13;
+  const PAGE_VERSION = 14;
 
   // ---------- The headline: one line for each day of the week ----------
   const MOTTOS = [
@@ -604,11 +668,39 @@
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", paintTheme);
   paintTheme();
 
+  // ---------- Choosing your analyst: on the home screen, and from the top bar anywhere else ----------
+  const paintWho = () => {
+    $("whorow").innerHTML = Object.entries(AV).map(([a, v]) => `<button class="who-btn" type="button" role="radio" aria-checked="${a === avatar}" data-avatar="${a}">${face(a)}<b>${v.name}</b><span>${v.role}</span></button>`).join("");
+    $("whostory").innerHTML = `<b>"${AV[avatar].says}"</b> ${AV[avatar].story}<small>Three simplified characters for learning. Not industry rules, not advice.</small>`;
+    $("avbtn").innerHTML = face(avatar);
+    $("avbtn").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
+    $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Your guesses are kept separately for each one.</p>`;
+  };
+  const closeAvMenu = () => { $("avmenu").hidden = true; $("avbtn").setAttribute("aria-expanded", "false"); };
+  $("avbtn").addEventListener("click", e => {
+    e.stopPropagation();
+    const open = $("avmenu").hidden;
+    closeSettings(); $("avmenu").hidden = !open; $("avbtn").setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", e => {
+    const pick = e.target.closest("[data-avatar]");
+    if (!pick) return;
+    avatar = pick.dataset.avatar; prefs.avatar = avatar; store.set("sc:prefs", prefs);
+    closeAvMenu(); paintWho();
+    data = other = null; render();   // the same screen, read again as the new analyst
+  });
+  document.addEventListener("click", e => {
+    if ($("avmenu").hidden || e.target.closest("#avmenu, #avbtn")) return;
+    closeAvMenu(); e.preventDefault(); e.stopPropagation();
+  }, true);
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("avmenu").hidden) closeAvMenu(); });
+
   // ---------- Settings: behind one button in the top bar ----------
   const closeSettings = () => { $("switches").hidden = true; $("gear").setAttribute("aria-expanded", "false"); };
   $("gear").addEventListener("click", e => {
     e.stopPropagation();
     const open = $("switches").hidden;
+    $("avmenu").hidden = true; $("avbtn").setAttribute("aria-expanded", "false");
     $("switches").hidden = !open; $("gear").setAttribute("aria-expanded", String(open));
   });
   document.addEventListener("click", e => {
@@ -626,7 +718,7 @@
   const INTRO = [
     ["Pick a company.", "Type a name, or tap a suggestion. The numbers come straight from its annual report.",
      '<span class="art-pill">Apple</span><span class="art-go">Read</span>'],
-    ["Guess the flag.", "Each card shows two numbers. Good, watch or warning? Tap your guess and the card flips.",
+    ["Guess the flag.", "Pick who you are today: a lender, a growth investor or a sceptic. Each card shows two numbers. Would your analyst call it good, watch or warning?",
      '<span class="art-num">+154.3%</span><span class="art-vs">vs sales +15.1%</span><span class="art-row"><i class="mark good"></i>Good<i class="mark watch"></i>Watch<i class="mark warn"></i>Warning</span>'],
     ["Check the proof.", "Every number links to its place in the filing. Tick a card once you have checked it yourself.",
      '<span class="art-link">83,292</span><span class="art-vs">opens the filing at that number</span><span class="art-row">☑ Checked</span>'],
@@ -661,7 +753,7 @@
   const paintRecent = () => {
     const list = recents().slice(0, 4);
     $("recent").hidden = !list.length;
-    $("recent").innerHTML = list.length ? `Recent ${list.map(c => { let b = {}; try { b = (c.end && JSON.parse(localStorage.getItem(`sc:best:${c.ticker}:${c.end}`))) || {}; } catch {}
+    $("recent").innerHTML = list.length ? `Recent ${list.map(c => { let b = {}; try { b = (c.end && JSON.parse(localStorage.getItem(`sc:best:${c.ticker}:${c.end}:${avatar}`))) || {}; } catch {}
       return `<button class="chip" type="button" data-try="${esc(c.ticker)}"${b.of ? ` aria-label="${esc(c.label)}, best score ${b.caught} of ${b.of}"` : ""}>${esc(c.label)}${b.of ? `<span class="when">${b.caught}/${b.of}</span>` : ""}</button>`; }).join(" ")}${wantNew ? "" : ` <button class="linkish" type="button" id="newones">Something new</button>`}` : "";
     $("tryrow").hidden = !!list.length && !wantNew;
   };
@@ -675,7 +767,7 @@
     get(k) { try { return JSON.parse(localStorage.getItem(k)) ?? mem[k] ?? {}; } catch { return mem[k] ?? {}; } },
     set(k, v) { mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   };
-  const keyFor = (kind, d) => `sc:${kind}:${d.ticker}:${d.fiscal.this_year.end}`;
+  const keyFor = (kind, d) => `sc:${kind}:${d.ticker}:${d.fiscal.this_year.end}${kind === "checked" ? "" : `:${avatar}`}`;
   // Guesses last for one sitting: they are forgotten when you close the tab, and when a new day starts.
   // So the cards are face down again each time you come back. Ticks and switches are kept for good.
   const sitting = {
@@ -710,8 +802,8 @@
   const prefs = { lang: "acct", reader: "investor", ...store.get("sc:prefs") };
   const plain = () => prefs.lang === "plain";
   const W = (o, k) => (plain() && o[k + "_plain"]) || o[k];          // W(card, "signal") -> the name in the chosen wording
-  const READER = { investor: "Investor · verify next", cfo: "CFO · ask inside" };
-  if (!READER[prefs.reader]) prefs.reader = prefs.reader === "coo" ? "cfo" : "investor"; // the second reader used to be the COO
+  const READER = { investor: "Verify next" };
+  prefs.reader = "investor"; // the Investor / CFO switch is gone: your analyst decides the last line
   const paintPrefs = () => document.querySelectorAll("[data-pref]").forEach(b => b.setAttribute("aria-pressed", String(prefs[b.dataset.pref] === b.dataset.val)));
   paintPrefs();
 
@@ -825,6 +917,7 @@
     const card = cardNow || after;                      // a checkpoint counts as being on a card for the bars
     $("ask").classList.toggle("small", !!ticker);
     $("gohome").hidden = !ticker;                       // anywhere but the home screen
+    $("avbtn").hidden = !ticker;                        // on the home screen the three are on the page itself
     $("goall").hidden = !card;                          // on a single card
     $("goall").textContent = $("taballlabel").textContent = vs ? "Compare" : "All cards";
     $("tabbar").hidden = !ticker; $("taball").hidden = !card;   // the same two buttons, at the bottom on a phone
@@ -842,7 +935,7 @@
         const [a, b] = await Promise.all([load(ticker), vs ? load(vs) : null]);
         const now = where();
         if (now.ticker !== ticker || now.vs !== vs) return; // you asked for something else while this was loading
-        data = a; other = b;
+        data = asAvatar(a); other = asAvatar(b);
       } catch (e) {
         return fail("Nothing to read.", e.message || "Something went wrong. Is the server still running in the Terminal?");
       }
@@ -997,7 +1090,7 @@
           <tr><th>When</th><th>Label</th></tr>
           ${c.rule.rows.map(([when, name], i) => `<tr${i === c.rule.hit ? ' class="hit"' : ""}><td>${esc(when)}${i === c.rule.hit ? ' <span class="thisone">this card</span>' : ""}</td><td class="lab">${mark(TONE[name])}${esc(name)}</td></tr>`).join("")}
         </table></div>
-        <p class="note muted">The first row that fits, reading down, gives the label. A label is a first screen, not a verdict.</p>`) : "";
+        <p class="note muted">${c.avatars ? `${AV[avatar].name}'s rules, simplified for learning. ` : ""}The first row that fits, reading down, gives the label. A label is a first screen, not a verdict.</p>`) : "";
     const prev = d.cards[prevN - 1], next = d.cards[nextN - 1];
     document.title = `${c.signal} · ${d.ticker} · Signal Cards`;
     const rows = c.rows.map(r => `
@@ -1009,12 +1102,14 @@
         <td class="src">${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.statement)}</a>` : esc(r.statement)}</td>
       </tr>`).join("");
     // The trend table: the last column is a label, the rest are numbers.
+    // The year-by-year labels came from the old single rulebook, so an analyst's card shows the numbers only.
+    const cols = c.trend ? W(c.trend, "columns").slice(0, c.trend.noLabels ? -1 : undefined) : [];
     const trend = c.trend ? fold("trend", `The last ${c.trend.rows.length} years`, `
         <div class="scroll"><table>
-          <tr>${W(c.trend, "columns").map((h, i, all) => `<th${i > 0 && i < all.length - 1 ? ' class="num"' : ""}>${esc(h)}</th>`).join("")}</tr>
-          ${c.trend.rows.map(r => `<tr>${r.map((v, i) => i === 0 ? `<td>${esc(v)}</td>` : i === r.length - 1 ? `<td class="lab">${mark(TONE[v])}${esc(v)}</td>` : `<td class="num">${esc(v)}</td>`).join("")}</tr>`).join("")}
+          <tr>${cols.map((h, i, all) => `<th${i > 0 && (c.trend.noLabels || i < all.length - 1) ? ' class="num"' : ""}>${esc(h)}</th>`).join("")}</tr>
+          ${c.trend.rows.map(r => `<tr>${r.slice(0, cols.length).map((v, i) => i === 0 ? `<td>${esc(v)}</td>` : !c.trend.noLabels && i === r.length - 1 ? `<td class="lab">${mark(TONE[v])}${esc(v)}</td>` : `<td class="num">${esc(v)}</td>`).join("")}</tr>`).join("")}
         </table></div>
-        <p class="note muted">Each row compares that year with the year before, by the same rules. One year can mislead; a run of years is harder to argue with.</p>`) : "";
+        <p class="note muted">Each row compares that year with the year before. One year can mislead; a run of years is harder to argue with.</p>`) : "";
     const down = faceDown(d, n), said = guesses(d)[n], checked = !!checks(d)[n];
     const verdict = !canGuess(c) || !said || said === "skip" ? "" : said === c.tone ? "You caught it." : `You said ${TONES[said]}. Missed this one.`;
     const missed = canGuess(c) && said && said !== "skip" && said !== c.tone; // a wrong guess: show the rule that applied
@@ -1049,7 +1144,7 @@
     if (down) { // face down: the two numbers and the question, nothing that gives the answer away
       $("detail").innerHTML = `${top}
       <div class="hero">${numbers}
-        <h2 class="ask-flag">Good, watch or warning?</h2>
+        <h2 class="ask-flag">${c.avatars ? `<span class="as">${face(avatar)}As ${AV[avatar].name}:</span> ` : ""}${c.avatars ? "good" : "Good"}, watch or warning?</h2>
         <div class="guess" role="group" aria-label="Your guess">${Object.entries(TONES).map(([t, word]) => `<button type="button" data-guess="${t}">${mark(t)}${word}</button>`).join("")}</div>
         <p class="keys muted">Or press 1, 2 or 3.</p>
         <p class="what">${esc(c.what)}</p>
@@ -1063,6 +1158,7 @@
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
           ${missed && c.rule?.hit >= 0 ? `<p class="why"><small>Why it is ${esc(c.label.name)}</small>${esc(c.rule.rows[c.rule.hit][0].replace(/the item/g, W(c, "signal").toLowerCase()))}.</p>` : ""}
+          ${c.others ? `<p class="others"><small>The other two</small>${c.others.map(o => `<span>${face(o.who)}${AV[o.who].name}: ${mark(o.tone)}<b>${esc(o.name)}</b></span>`).join("")}</p>` : ""}
           ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
           ${place >= 0 ? `<button class="pill nextpill" type="button" data-forward>${next ? "Next: " : ""}${esc(nextLabel)} →</button>` : ""}
         </div>
@@ -1253,6 +1349,7 @@
     if (location.search === here) render(); // at either end: nothing to move to, but the hint can go
   }, { passive: true });
   addEventListener("popstate", render);
+  paintWho();
   render();
   // Offline use: sw.js keeps the page and the companies you have read. The network always comes first.
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});

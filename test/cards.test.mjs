@@ -311,3 +311,15 @@ test("avatars: every labelled card built from data carries the numbers the ruleb
   assert.equal(rows.length, 11); // every card except Labour force
   for (const r of rows) for (const a of ["owl", "bull", "bear"]) assert.match(r[a], /^(good|watch|warn)$/, `${r.signal} ${a}`);
 });
+
+test("avatars: each card carries all three readings, with a reason, a rule table and the row that applied", () => {
+  const cards = buildCards(company({ sales: [1100, 1000], inventory: [59, 50] }), "1").cards;
+  const inv = cards.find(c => c.signal === "Inventory").avatars; // made-up: sales +10%, inventory +18%
+  assert.deepEqual(Object.keys(inv), ["owl", "bull", "bear"]);
+  assert.equal(inv.owl.name, "Warning");
+  assert.match(inv.owl.reason, /^Sales up 10\.0%\. Inventory up 18\.0%\. /);
+  assert.equal(inv.owl.rule.rows[inv.owl.rule.hit][1], "Warning");
+  assert.equal(inv.bull.name, "Good");
+  assert.ok(inv.bear.next, "a verify-next line for the bear's own label");
+  assert.equal(cards.find(c => c.signal === "Labour force").avatars, undefined);
+});

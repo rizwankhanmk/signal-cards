@@ -2,6 +2,8 @@
 // No network and no files here, so this part can be tested on its own.
 // No numbers are typed in. Missing does not mean zero: a missing input makes the card say "Not found".
 
+import { avatarsFor } from "./avatars.mjs";
+
 // ---------- 1. Which SEC tags mean what ----------
 // Companies tag the same idea with different names. We try each name in order.
 // instant: true  = a balance-sheet figure on one date.
@@ -606,6 +608,13 @@ export function buildCards(facts, cik, info = {}) {
     cashFromProfit(), freeCashFlow(), whatItOwes(), returnOnAssets(),
   ];
   cards.forEach((c, i) => { c.deck = i < 8 ? "The eight signals" : "Cash and debt"; });
+  // The three analysts' readings of each card, each with the "verify next" line for its own label.
+  cards.forEach(c => {
+    const three = avatarsFor(c);
+    if (!three) return;
+    for (const r of Object.values(three)) r.next = NEXT[c.signal]?.[r.tone]?.[0] ?? null;
+    c.avatars = three;
+  });
 
   // For anything missing, list look-alike tags the company did use this year. Helps fix the tag lists above.
   const lookalikes = {};

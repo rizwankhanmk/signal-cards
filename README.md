@@ -121,6 +121,15 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
 
+## Avatar (experiment, on the `avatar` branch only)
+
+You read every card as one of three analysts: the Owl (a lender), the Bull (a growth investor) or the Bear
+(a sceptic). Each has its own rulebook in `avatars.mjs`, so the same numbers can earn different labels. You
+pick one on the home screen and can switch from the top bar; guesses and best scores are kept per analyst.
+After a reveal the card shows what the other two said. The rulebooks are a simplification for learning,
+not an industry standard, and nothing in them is advice. `npm run avatars` prints, for real companies,
+where the three agree and where they split.
+
 ## Tests
 
 `npm test` runs `test/cards.test.mjs`: every row of the label rules below, the formulas, units, restated
