@@ -91,7 +91,7 @@
   /* Search box */
   .ask { text-align: center; padding: 9vh 0 6vh; }
   .ask.small { padding: 3vh 0 4vh; }
-  .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 14px; text-wrap: balance; }
+  .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 30px; text-wrap: balance; }
   .ask.small .motto, .ask.small .lede, .ask.small .tries { display: none; }
   .tries.after { margin: 26px 0 0; }
   /* A heading between groups of tiles, and the plain reading under a ratio table */
@@ -337,19 +337,15 @@
   .quiet.center b { font-weight: 600; color: var(--text); }
   /* The three analysts */
   .face { border-radius: 50%; display: block; flex: none; }
-  .who { margin: 26px auto 22px; max-width: 30rem; }
-  .who-title { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
-  .who-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-  .who-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 6px 12px; border: 0; border-radius: 22px; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .who-btn .face { width: 72px; height: 72px; margin-bottom: 8px; opacity: .55; transition: opacity .15s ease, transform .15s ease; }
-  .who-btn b { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
-  .who-btn span { font-size: 13px; color: var(--muted); }
-  .who-btn:hover .face { opacity: .85; }
-  .who-btn[aria-checked="true"] { background: var(--surface); }
-  .who-btn[aria-checked="true"] .face { opacity: 1; transform: scale(1.06); }
-  .who-story { font-size: 15px; color: var(--muted); margin: 14px 0 0; min-height: 4.4em; }
+  .who { margin: 20px 0 0; }
+  .who-row { display: flex; justify-content: center; gap: 10px; }
+  .who-btn { padding: 4px; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .who-btn .face { width: 48px; height: 48px; opacity: .45; transition: opacity .15s ease; }
+  .who-btn:hover .face { opacity: .8; }
+  .who-btn[aria-checked="true"] { box-shadow: 0 0 0 2px var(--text); }
+  .who-btn[aria-checked="true"] .face { opacity: 1; }
+  .who-story { font-size: 15px; color: var(--muted); margin: 10px 0 0; }
   .who-story b { color: var(--text); font-weight: 600; }
-  .who-story small { display: block; font-size: 12px; margin-top: 6px; }
   .ask.small .who { display: none; }
   .avbtn .face { width: 32px; height: 32px; }
   .avmenu { right: 44px; gap: 4px; padding: 14px 10px 10px; }
@@ -368,7 +364,6 @@
   .hero .others b { color: var(--text); font-weight: 600; }
   .hero .others .face { width: 26px; height: 26px; }
   .hero .others .mark { margin-right: 0; }
-  @media (max-width: 420px) { .who-btn .face { width: 60px; height: 60px; } .who-btn b { font-size: 15px; } .who-btn span { font-size: 12px; } }
   @media (prefers-reduced-motion: reduce) { .who-btn .face { transition: none; } }
   .skip { position: absolute; left: 12px; top: -60px; z-index: 20; padding: 10px 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; text-decoration: none; }
   .skip:focus { top: 12px; }
@@ -492,12 +487,6 @@
     <p class="sr" id="say" aria-live="polite"></p>
     <section class="ask" id="ask">
       <p class="motto" id="motto">Money talks. Learn to listen.</p>
-      <p class="lede">Type a company. Read its annual report, one card at a time.</p>
-      <div class="who" id="who">
-        <p class="who-title">Who are you today?</p>
-        <div class="who-row" id="whorow" role="radiogroup" aria-label="Your analyst"></div>
-        <p class="who-story" id="whostory"></p>
-      </div>
       <form id="form">
         <div class="box">
           <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
@@ -506,6 +495,10 @@
         </div>
         <button class="go">Read</button>
       </form>
+      <div class="who" id="who">
+        <div class="who-row" id="whorow" role="radiogroup" aria-label="Who are you today?"></div>
+        <p class="who-story" id="whostory"></p>
+      </div>
       <p class="offline" id="offline" hidden>You are offline. Companies you have already read still open.</p>
       <p class="tries" id="recent" hidden></p>
       <p class="tries" id="tryrow"><span id="trylabel">Try</span>
@@ -670,11 +663,11 @@
 
   // ---------- Choosing your analyst: on the home screen, and from the top bar anywhere else ----------
   const paintWho = () => {
-    $("whorow").innerHTML = Object.entries(AV).map(([a, v]) => `<button class="who-btn" type="button" role="radio" aria-checked="${a === avatar}" data-avatar="${a}">${face(a)}<b>${v.name}</b><span>${v.role}</span></button>`).join("");
-    $("whostory").innerHTML = `<b>"${AV[avatar].says}"</b> ${AV[avatar].story}<small>Three simplified characters for learning. Not industry rules, not advice.</small>`;
+    $("whorow").innerHTML = Object.entries(AV).map(([a, v]) => `<button class="who-btn" type="button" role="radio" aria-checked="${a === avatar}" aria-label="${v.name}, the ${v.role.toLowerCase()}" title="${v.name} · ${v.role}" data-avatar="${a}">${face(a)}</button>`).join("");
+    $("whostory").innerHTML = `Reading as <b>${AV[avatar].name}</b>, the ${AV[avatar].role.toLowerCase()}. "${AV[avatar].says}"`;
     $("avbtn").innerHTML = face(avatar);
     $("avbtn").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
-    $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Your guesses are kept separately for each one.</p>`;
+    $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Simplified characters for learning, not industry rules. Your guesses are kept separately for each one.</p>`;
   };
   const closeAvMenu = () => { $("avmenu").hidden = true; $("avbtn").setAttribute("aria-expanded", "false"); };
   $("avbtn").addEventListener("click", e => {
