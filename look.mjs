@@ -11,14 +11,15 @@ const money = v => Math.round(v / 1e6).toLocaleString("en-US") + "m";
 const days = (a, b) => Math.round((new Date(b) - new Date(a)) / 86_400_000);
 
 const ticker = (process.argv[2] || "XOM").toUpperCase();
-const list = Object.values(await get("https://www.sec.gov/files/company_tickers.json") ?? {});
-const hit = list.find(c => c.ticker === ticker);
+const direct = /^\d+$/.test(ticker) ? Number(ticker) : 0; // npm run look 34088 -> look at that record number itself
+const list = direct ? [] : Object.values(await get("https://www.sec.gov/files/company_tickers.json") ?? {});
+const hit = direct ? { cik_str: direct, title: "", ticker: "" } : list.find(c => c.ticker === ticker);
 if (!hit) { console.log(`No ${ticker} in the SEC's list.`); process.exit(1); }
 
 const word = hit.title.split(/[\s,.]+/)[0].replace(/mobil$/i, "").toLowerCase(); // "exxon" from "ExxonMobil"
-const alike = list.filter(c => c.title.toLowerCase().includes(word));
-console.log(`\n${ticker} points at record ${hit.cik_str}: ${hit.title}`);
-console.log(`Records in the SEC's ticker list with "${word}" in the name:`);
+const alike = direct ? [] : list.filter(c => c.title.toLowerCase().includes(word));
+if (!direct) console.log(`\n${ticker} points at record ${hit.cik_str}: ${hit.title}`);
+if (!direct) console.log(`Records in the SEC's ticker list with "${word}" in the name:`);
 for (const c of alike) console.log(`   ${c.cik_str}  ${c.ticker}  ${c.title}`);
 
 async function look(cik) {
