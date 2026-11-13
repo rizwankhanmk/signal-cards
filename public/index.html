@@ -376,8 +376,9 @@
   .box-av[data-who="bull"] { --glow: #e6a82e; } .box-av[data-who="bear"] { --glow: #8f86d0; }
   .box-av .face { width: 56px; height: 56px; }
   .box-av:hover, .box-av[aria-expanded="true"] { transform: scale(1.07); }
-  .av-swap { position: absolute; right: -6px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--text); color: var(--bg); box-shadow: 0 0 0 2px var(--bg); }
-  .av-swap svg { width: 14px; height: 14px; }
+  .av-swap { position: absolute; right: -9px; bottom: -7px; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--muted); box-shadow: 0 0 0 2px var(--bg); }
+  .av-swap svg { width: 12px; height: 12px; }
+  .box-av:hover .av-swap, .box-av[aria-expanded="true"] .av-swap { color: var(--text); }
   @keyframes av-glow { 50% { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--glow), 0 0 30px 7px color-mix(in srgb, var(--glow) 75%, transparent); } }
   @media (prefers-reduced-motion: reduce) { .box-av { animation: none; transition: none; } }
   .ask.has-av:not(.small) form { gap: 14px; align-items: center; }
