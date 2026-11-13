@@ -368,12 +368,23 @@
   .eg-who .face { width: 48px; height: 48px; margin-bottom: 4px; }
   .eg-who b { font-size: 15px; font-weight: 600; color: var(--text); }
   .eg-who .mark { margin-right: .35em; }
-  .box-av { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; padding: 2px; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .box-av .face { width: 36px; height: 36px; }
-  .box-av:hover, .box-av[aria-expanded="true"] { box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 35%, transparent); }
-  .ask.has-av:not(.small) #q { padding-right: 54px; }
-  .ask.small .box-av, .ask.small .boxmenu { display: none; }
-  .boxmenu { right: 0; top: calc(100% + 8px); text-align: left; }
+  /* Your analyst, to the left of the search box: big, lit in its own colour, with a badge that says "switch" */
+  .av-slot { position: relative; flex: none; display: flex; align-items: center; }
+  .av-slot:has(#boxav[hidden]) { display: none; }
+  .box-av { --glow: #3f8a94; position: relative; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--glow), 0 0 22px 2px color-mix(in srgb, var(--glow) 65%, transparent); transition: transform .15s ease; animation: av-glow 2.6s ease-in-out infinite; }
+  .box-av[data-who="bull"] { --glow: #e6a82e; } .box-av[data-who="bear"] { --glow: #8f86d0; }
+  .box-av .face { width: 56px; height: 56px; }
+  .box-av:hover, .box-av[aria-expanded="true"] { transform: scale(1.07); }
+  .av-swap { position: absolute; right: -6px; bottom: -4px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--text); color: var(--bg); box-shadow: 0 0 0 2px var(--bg); }
+  .av-swap svg { width: 14px; height: 14px; }
+  @keyframes av-glow { 50% { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--glow), 0 0 30px 7px color-mix(in srgb, var(--glow) 75%, transparent); } }
+  @media (prefers-reduced-motion: reduce) { .box-av { animation: none; transition: none; } }
+  .ask.has-av:not(.small) form { gap: 14px; align-items: center; }
+  .ask.has-av:not(.small) .go { margin-left: -6px; }
+  .ask.small .av-slot { display: none; }
+  .boxmenu { left: -8px; right: auto; top: calc(100% + 12px); text-align: left; }
+  @media (max-width: 420px) { .box-av, .box-av .face { width: 48px; height: 48px; } .ask.has-av:not(.small) form { gap: 10px; } }
   .who-why { font-size: 16px; color: var(--muted); margin: -4px 0 16px; text-wrap: balance; }
   .who-more { display: grid; gap: 10px; margin: 16px auto 20px; padding: 16px 18px; max-width: 26rem; border-radius: 18px; background: var(--surface); text-align: left; font-size: 15px; color: var(--text); }
   .who-more span { display: block; }
@@ -539,12 +550,14 @@
         <p class="who-story" id="whostory"></p>
       </div>
       <form id="form">
+        <span class="av-slot">
+          <button class="box-av" id="boxav" type="button" aria-expanded="false" aria-controls="boxmenu" hidden></button>
+          <div class="switches avmenu boxmenu" id="boxmenu" hidden></div>
+        </span>
         <div class="box">
           <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
                  role="combobox" aria-expanded="false" aria-controls="hits" aria-autocomplete="list">
           <ul class="hits" id="hits" role="listbox" hidden></ul>
-          <button class="box-av" id="boxav" type="button" aria-expanded="false" aria-controls="boxmenu" hidden></button>
-          <div class="switches avmenu boxmenu" id="boxmenu" hidden></div>
         </div>
         <button class="go">Read</button>
       </form>
@@ -752,7 +765,7 @@
          <span class="who-more"><span><i>What worries you</i>${v.worries}</span><span><i>What you forgive</i>${v.forgives}</span><span><i>Where you look first</i>${v.looks}</span></span>
          <button class="go" type="button" id="whogo">Continue as ${v.name} →</button>${small}`;
     $("who").hidden = chosen;                  // once chosen, the picker steps aside: your analyst lives in the search box
-    $("boxav").hidden = !chosen; $("boxav").innerHTML = face(avatar);
+    $("boxav").hidden = !chosen; $("boxav").innerHTML = face(avatar) + '<span class="av-swap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9h11l-3-3M17 15H6l3 3"/></svg></span>'; $("boxav").dataset.who = avatar;
     $("ask").classList.toggle("has-av", chosen);
     $("avbtn").innerHTML = face(avatar);
     $("avbtn").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
