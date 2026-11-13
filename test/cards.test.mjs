@@ -289,3 +289,37 @@ test("tickers are cleaned, and anything that is not a ticker is refused", () => 
   assert.equal(cleanTicker(" brk.b "), "BRK-B");
   for (const bad of ["", "../../etc/passwd", "a b", "x;rm"]) assert.throws(() => cleanTicker(bad));
 });
+
+// ---------- AVATAR experiment: three analysts, one card ----------
+import { readings, readCompany } from "../avatars.mjs";
+
+test("avatars: each of the three gives a label, and they can disagree", () => {
+  // Made-up: stock grew 8 points faster than sales. The lender warns, the growth investor lets it build.
+  const r = readings({ signal: "Inventory", tone: "watch", nums: { s: 10, g: 18 } });
+  assert.deepEqual(r, { owl: "warn", bull: "good", bear: "watch" });
+});
+
+test("avatars: a card with no label has no readings", () => {
+  assert.equal(readings({ signal: "Inventory", tone: null, nums: null }), null);
+  assert.deepEqual(readCompany([{ signal: "Labour force", tone: null }]), []);
+});
+
+test("avatars: every labelled card built from data carries the numbers the rulebooks need", () => {
+  const made = company({ sales: [1100, 1000], cost: [600, 560], inventory: [52, 50], receivables: [130, 100], sga: [210, 200], rnd: [40, 50], capex: [90, 40],
+    tax: [50, 40], pretax: [200, 190], ocf: [160, 170], netincome: [150, 150], assets: [2000, 1900], equity: [900, 800] });
+  const rows = readCompany(buildCards(made, "1").cards);
+  assert.equal(rows.length, 11); // every card except Labour force
+  for (const r of rows) for (const a of ["owl", "bull", "bear"]) assert.match(r[a], /^(good|watch|warn)$/, `${r.signal} ${a}`);
+});
+
+test("avatars: each card carries all three readings, with a reason, a rule table and the row that applied", () => {
+  const cards = buildCards(company({ sales: [1100, 1000], inventory: [59, 50] }), "1").cards;
+  const inv = cards.find(c => c.signal === "Inventory").avatars; // made-up: sales +10%, inventory +18%
+  assert.deepEqual(Object.keys(inv), ["owl", "bull", "bear"]);
+  assert.equal(inv.owl.name, "Warning");
+  assert.match(inv.owl.reason, /^Sales up 10\.0%\. Inventory up 18\.0%\. /);
+  assert.equal(inv.owl.rule.rows[inv.owl.rule.hit][1], "Warning");
+  assert.equal(inv.bull.name, "Good");
+  assert.ok(inv.bear.next, "a verify-next line for the bear's own label");
+  assert.equal(cards.find(c => c.signal === "Labour force").avatars, undefined);
+});

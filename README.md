@@ -1,6 +1,6 @@
 # Signal Cards
 
-Read a company's annual report like an investor or a CFO, one signal at a time.
+Read a company's annual report one signal at a time, as a lender, a growth investor or a sceptic.
 Educational, not financial advice.
 
 ## Run it (any US ticker)
@@ -63,8 +63,8 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   Ticks and the two switches are remembered in your browser for good, per company and fiscal year.
 - Accounting / Plain English: one switch swaps the wording everywhere ("Accounts receivable" becomes "Unpaid customer bills").
   Both wordings are written in `signals.mjs`.
-- Investor / CFO: same cards, different last line. The investor's line says what to check in the filing;
-  the CFO's says what to ask inside the business. Neither is buy or sell advice. The lines are in `NEXT` in `signals.mjs`.
+- Verify next: the last line of a card says what to check in the filing for the label your analyst gave.
+  It is never buy or sell advice. The lines are in `NEXT` in `signals.mjs`.
 - Compare: under the tiles, "Compare with" puts a second company beside the first, signal by signal.
   It says so if their years end on different dates, and "Not comparable" if they follow different accounting rules.
 - Checking a number: on a card, tap any number from the filing and the 10-K opens scrolled to that number,
@@ -81,9 +81,9 @@ company per day. `local-server.mjs` is only for running the app on your own comp
 - On a phone the bottom bar has Previous in the left corner and Next in the right on every card, greyed out
   at either end. On a computer a "Next" button sits under each revealed card. When every card is flipped, the
   app suggests three more companies.
-- The first time someone opens the home screen, three short screens explain the app. "How it works" on the
-  home screen and in Settings shows them again.
-- Settings sit behind one button in the top bar: wording, which reader's line to show, and appearance (auto,
+- The first time someone opens the home screen, a short story explains the game and ends with choosing an
+  analyst. "How it works" on the home screen and in Settings opens a three-screen reminder.
+- Settings sit behind one button in the top bar: wording and appearance (auto,
   light, dark). The sun or moon beside it switches light and dark in one tap.
 - The home screen lists the last few companies you opened, under "Recent". Once there is a Recent list it
   stands in place of the suggestions; "Something new" brings them back.
@@ -120,6 +120,17 @@ company per day. `local-server.mjs` is only for running the app on your own comp
   the saved copy is used only when there is no connection, and the page says so.
 - Voice: short sentences, the numbers first, then one blunt line. Facts only, never buy or sell advice.
   The lines live next to the label rules in `signals.mjs`.
+
+## Avatar: three analysts
+
+You read every card as one of three analysts: the Owl (a lender), the Bull (a growth investor) or the Bear
+(a sceptic). Each has its own rulebook in `avatars.mjs`, so the same numbers can earn different labels. You
+pick one on your first visit, after a four-screen story of the game; after that your analyst sits in the
+search box on the home screen and in the top bar elsewhere, and one tap switches. Guesses and best scores
+are kept per analyst.
+After a reveal the card shows what the other two said. The rulebooks are a simplification for learning,
+not an industry standard, and nothing in them is advice. `npm run avatars` prints, for real companies,
+where the three agree and where they split.
 
 ## Tests
 
