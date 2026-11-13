@@ -323,3 +323,15 @@ test("avatars: each card carries all three readings, with a reason, a rule table
   assert.ok(inv.bear.next, "a verify-next line for the bear's own label");
   assert.equal(cards.find(c => c.signal === "Labour force").avatars, undefined);
 });
+
+test("avatars: in a boom year the bear does not flag things for merely growing slower than sales", () => {
+  // Made-up: sales tripled. Stock, overheads and research all grew, but far slower.
+  const boom = s => readings({ signal: s, tone: "good", nums: { s: 200, g: 20 } }).bear;
+  assert.equal(boom("Inventory"), "good");
+  assert.equal(boom("SG&A"), "good");
+  assert.equal(boom("Research and development"), "good");
+  // In an ordinary year the same kind of gap is still questioned.
+  assert.equal(readings({ signal: "Inventory", tone: "good", nums: { s: 20, g: 2 } }).bear, "warn");
+  // And outrunning sales is flagged in any year.
+  assert.equal(readings({ signal: "Accounts receivable", tone: "warn", nums: { s: 200, g: 300 } }).bear, "warn");
+});
