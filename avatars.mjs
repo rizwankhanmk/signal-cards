@@ -20,6 +20,10 @@ const G = "good", W = "watch", X = "warn";
 const gap = n => n.g - n.s;
 const far = n => Math.abs(n.g - n.s);
 const k = n => n.steady ?? 1; // banks earn about 1% on assets, so their cut-offs shrink
+// A boom year: sales grew by more than half. Costs and stock always lag in a year like that, so the
+// sceptic stops flagging things for merely growing slower than sales, and looks only at what outran them.
+const boom = n => n.s > 50;
+const UNLESS = "(not counted when sales grew over 50%)";
 
 // Each rulebook is a list of rows, read top to bottom. The first row that fits gives the label.
 // A row is [test, tone, when (shown in the rule table), why (the avatar's one-line reason)].
@@ -38,9 +42,11 @@ const RULES = {
       [n => gap(n) > 10, W, "Inventory grew 10 to 25 points faster than sales", "Stocking up ahead of demand. Fine, if the demand comes."],
       [null, G, "Sales grew, and inventory stayed within 10 points of them", "Stock is keeping up with the growth."]],
     bear: [
-      [n => far(n) > 10, X, "Inventory and sales grew more than 10 points apart, either way", "A gap this wide needs explaining: piling up, or running short."],
-      [n => far(n) > 5, W, "Inventory and sales grew 5 to 10 points apart", "Not in step. Find out why."],
-      [null, G, "Inventory and sales grew within 5 points of each other", "In step with sales. Nothing odd."]],
+      [n => gap(n) > 10, X, "Inventory grew more than 10 points faster than sales", "Stock is piling up faster than it sells."],
+      [n => gap(n) > 5, W, "Inventory grew 5 to 10 points faster than sales", "Running ahead of sales. Find out why."],
+      [n => !boom(n) && gap(n) < -10, X, `Inventory grew more than 10 points slower than sales ${UNLESS}`, "A gap this wide needs explaining. Is it running short?"],
+      [n => !boom(n) && gap(n) < -5, W, `Inventory grew 5 to 10 points slower than sales ${UNLESS}`, "Not in step. Find out why."],
+      [null, G, "Nothing above applies", "Nothing here to question."]],
   },
   "Accounts receivable": {
     owl: [
@@ -57,8 +63,8 @@ const RULES = {
     bear: [
       [n => gap(n) > 5, X, "Receivables grew more than 5 points faster than sales", "Were sales booked before customers were ready to pay?"],
       [n => gap(n) > 2, W, "Receivables grew 2 to 5 points faster than sales", "Drifting ahead of sales. Check how long customers take to pay."],
-      [n => gap(n) < -10, W, "Receivables grew more than 10 points slower than sales", "Unusually good. Ask what changed."],
-      [null, G, "Receivables grew in step with sales", "In step with sales. Nothing odd."]],
+      [n => !boom(n) && gap(n) < -10, W, `Receivables grew more than 10 points slower than sales ${UNLESS}`, "Unusually good. Ask what changed."],
+      [null, G, "Nothing above applies", "Nothing here to question."]],
   },
   "Capital expenditure": {
     owl: [
@@ -70,10 +76,10 @@ const RULES = {
       [n => n.g <= 0, W, "Spending did not rise", "No new investment. Growth has to come from somewhere."],
       [null, G, "Spending rose", "Investing for growth."]],
     bear: [
-      [n => n.g > 100, X, "Spending more than doubled", "Bets this big often disappoint."],
-      [n => n.g > 50, W, "Spending rose more than 50%", "A big step up. What is it buying?"],
+      [n => n.g > 100 && n.g > n.s, X, "Spending more than doubled, and grew faster than sales", "Bets this big often disappoint."],
+      [n => n.g > 50 && n.g > n.s, W, "Spending rose more than 50%, and faster than sales", "A big step up. What is it buying?"],
       [n => n.g < -25, W, "Spending was cut by more than 25%", "A sharp cut. Is cash tight?"],
-      [null, G, "Spending moved by less than that", "No sudden move."]],
+      [null, G, "Nothing above applies", "No sudden move."]],
   },
   "Research and development": {
     owl: [
@@ -85,8 +91,9 @@ const RULES = {
       [null, G, "Research kept pace with sales", "The future is being paid for."]],
     bear: [
       [n => n.g < 0 && n.s > 0, X, "Research was cut while sales grew", "A cut like this makes profit look better than it is."],
-      [n => far(n) > 10, W, "Research and sales grew more than 10 points apart, either way", "Out of step with sales. Find out why."],
-      [null, G, "Research grew in step with sales", "In step with sales. Nothing odd."]],
+      [n => gap(n) > 10, W, "Research grew more than 10 points faster than sales", "Running well ahead of sales. Find out why."],
+      [n => !boom(n) && gap(n) < -10, W, `Research grew more than 10 points slower than sales ${UNLESS}`, "Research is falling behind the business."],
+      [null, G, "Nothing above applies", "Nothing here to question."]],
   },
   "Gross profit": {
     owl: [
@@ -116,8 +123,8 @@ const RULES = {
     bear: [
       [n => gap(n) > 5, X, "Overheads grew more than 5 points faster than sales", "Costs are running away from sales."],
       [n => gap(n) > 2, W, "Overheads grew 2 to 5 points faster than sales", "Drifting ahead of sales."],
-      [n => gap(n) < -10, W, "Overheads grew more than 10 points slower than sales", "Cuts this deep may not last."],
-      [null, G, "Overheads grew in step with sales", "In step with sales. Nothing odd."]],
+      [n => !boom(n) && gap(n) < -10, W, `Overheads grew more than 10 points slower than sales ${UNLESS}`, "Cuts this deep may not last."],
+      [null, G, "Nothing above applies", "Nothing here to question."]],
   },
   "Effective tax rate": {
     owl: [
@@ -160,8 +167,8 @@ const RULES = {
       [null, G, "Positive, and not much thinner", "The business pays for its own growth."]],
     bear: [
       [n => n.level < 0, X, "Free cash flow is negative", "It spends more than it brings in."],
-      [n => Math.abs(n.change) > 5, W, "The margin moved more than 5 points, either way", "A big swing. Find out what moved."],
-      [null, G, "Positive and steady", "Steady. Nothing odd."]],
+      [n => n.change < -5, W, "The margin fell more than 5 points", "Much less is left over. Find out what moved."],
+      [null, G, "Positive, and not much thinner", "Nothing here to question."]],
   },
   "What it owes": {
     owl: [
@@ -175,9 +182,9 @@ const RULES = {
       [null, G, "Debt is not jumping", "Borrowing to grow is fine."]],
     bear: [
       [n => n.change > 10, X, "The share it owes rose more than 10 points", "Debt is piling up fast."],
-      [n => Math.abs(n.change) > 5, W, "The share it owes moved more than 5 points, either way", "A big shift in how it is funded."],
+      [n => n.change > 5, W, "The share it owes rose 5 to 10 points", "Debt is building. What is it paying for?"],
       [n => n.level > 75, W, "It owes more than 75% of what it owns", "Little room for error."],
-      [null, G, "Steady, and under 75%", "Steady. Nothing odd."]],
+      [null, G, "Not rising fast, and under 75%", "Nothing here to question."]],
   },
   "Return on assets": {
     owl: [
