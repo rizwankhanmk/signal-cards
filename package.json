@@ -8,6 +8,7 @@
     "start": "node --env-file=.env local-server.mjs",
     "test": "node --test",
     "avatars": "node --env-file=.env avatars-run.mjs",
-    "look": "node --env-file=.env look.mjs"
+    "look": "node --env-file=.env look.mjs",
+    "reasons": "node --env-file=.env reasons.mjs"
   }
 }
