@@ -91,7 +91,7 @@
   /* Search box */
   .ask { text-align: center; padding: 9vh 0 6vh; }
   .ask.small { padding: 3vh 0 4vh; }
-  .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 30px; text-wrap: balance; }
+  .motto { font-size: clamp(30px, 6vw, 56px); font-weight: 700; letter-spacing: -.035em; line-height: 1.06; margin: 0 0 14px; text-wrap: balance; }
   .ask.small .motto, .ask.small .lede, .ask.small .tries { display: none; }
   .tries.after { margin: 26px 0 0; }
   /* A heading between groups of tiles, and the plain reading under a ratio table */
@@ -337,16 +337,29 @@
   .quiet.center b { font-weight: 600; color: var(--text); }
   /* The three analysts */
   .face { border-radius: 50%; display: block; flex: none; }
-  .who { margin: 20px 0 0; }
-  .who-row { display: flex; justify-content: center; gap: 10px; }
-  .who-btn { padding: 4px; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-  .who-btn .face { width: 48px; height: 48px; opacity: .45; transition: opacity .15s ease; }
-  .who-btn:hover .face { opacity: .8; }
-  .who-btn[aria-checked="true"] { box-shadow: 0 0 0 2px var(--text); }
-  .who-btn[aria-checked="true"] .face { opacity: 1; }
-  .who-story { font-size: 15px; color: var(--muted); margin: 10px 0 0; }
+  .who { margin: 26px auto 22px; max-width: 30rem; }
+  .who-title { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  .who-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .who-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 14px 6px 12px; border: 0; border-radius: 22px; background: none; color: inherit; font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .who-btn .face { width: 72px; height: 72px; margin-bottom: 8px; opacity: .55; transition: opacity .15s ease, transform .15s ease; }
+  .who-btn b { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .who-btn span { font-size: 13px; color: var(--muted); }
+  .who-btn:hover .face { opacity: .85; }
+  .who-btn[aria-checked="true"] { background: var(--surface); }
+  .who-btn[aria-checked="true"] .face { opacity: 1; transform: scale(1.06); }
+  .who-story { font-size: 15px; color: var(--muted); margin: 14px 0 0; min-height: 4.4em; }
   .who-story b { color: var(--text); font-weight: 600; }
+  .who-story small { display: block; font-size: 12px; margin-top: 6px; }
   .ask.small .who { display: none; }
+  /* First visit: the analysts only. The search box and suggestions come after the choice. */
+  .ask.first:not(.small) .lede, .ask.first:not(.small) form, .ask.first:not(.small) .tries, .ask.first:not(.small) .soonline, .ask.first:not(.small) .offline { display: none; }
+  .who-why { font-size: 16px; color: var(--muted); margin: -4px 0 16px; text-wrap: balance; }
+  .who-more { display: grid; gap: 10px; margin: 16px auto 20px; padding: 16px 18px; max-width: 26rem; border-radius: 18px; background: var(--surface); text-align: left; font-size: 15px; color: var(--text); }
+  .who-more span { display: block; }
+  .who-more i { display: block; font-style: normal; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .who-story .go { display: block; margin: 0 auto 4px; }
+  .ask.first .who-btn .face { opacity: 1; }
+  .ask.first .who-btn:not([aria-checked="true"]) .face { opacity: .9; }
   .avbtn .face { width: 32px; height: 32px; }
   .avmenu { right: 44px; gap: 4px; padding: 14px 10px 10px; }
   .avmenu .set-title { margin: 0 6px 4px; }
@@ -364,6 +377,7 @@
   .hero .others b { color: var(--text); font-weight: 600; }
   .hero .others .face { width: 26px; height: 26px; }
   .hero .others .mark { margin-right: 0; }
+  @media (max-width: 420px) { .who-btn .face { width: 60px; height: 60px; } .who-btn b { font-size: 15px; } .who-btn span { font-size: 12px; } }
   @media (prefers-reduced-motion: reduce) { .who-btn .face { transition: none; } }
   .skip { position: absolute; left: 12px; top: -60px; z-index: 20; padding: 10px 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-weight: 600; text-decoration: none; }
   .skip:focus { top: 12px; }
@@ -487,6 +501,13 @@
     <p class="sr" id="say" aria-live="polite"></p>
     <section class="ask" id="ask">
       <p class="motto" id="motto">Money talks. Learn to listen.</p>
+      <p class="lede">Type a company. Read its annual report, one card at a time.</p>
+      <div class="who" id="who">
+        <p class="who-title" id="whotitle">Who are you today?</p>
+        <p class="who-why" id="whowhy" hidden>The same numbers mean different things to different people. Choose who you are, and read each report through their eyes.</p>
+        <div class="who-row" id="whorow" role="radiogroup" aria-label="Your analyst"></div>
+        <p class="who-story" id="whostory"></p>
+      </div>
       <form id="form">
         <div class="box">
           <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
@@ -495,10 +516,6 @@
         </div>
         <button class="go">Read</button>
       </form>
-      <div class="who" id="who">
-        <div class="who-row" id="whorow" role="radiogroup" aria-label="Who are you today?"></div>
-        <p class="who-story" id="whostory"></p>
-      </div>
       <p class="offline" id="offline" hidden>You are offline. Companies you have already read still open.</p>
       <p class="tries" id="recent" hidden></p>
       <p class="tries" id="tryrow"><span id="trylabel">Try</span>
@@ -577,13 +594,18 @@
   // You read every card as one of them. Each has its own rulebook (avatars.mjs), so the same numbers
   // can earn different labels. They are simplified characters for learning, not industry rules.
   const AV = {
-    owl:  { name: "The Owl",  role: "Lender",          says: "Just pay me back.", story: "You lent this company money. You only want it back, with interest." },
-    bull: { name: "The Bull", role: "Growth investor", says: "Think bigger.",     story: "You own a piece of the company and want it far bigger in five years." },
-    bear: { name: "The Bear", role: "Sceptic",         says: "Prove it.",         story: "You assume the numbers are flattering until shown otherwise." },
+    owl:  { name: "The Owl",  role: "Lender",          says: "Just pay me back.", story: "You lent this company money. You only want it back, with interest.",
+            worries: "Debt rising, cash falling, money stuck in stock or unpaid invoices.", forgives: "Slow growth, as long as the bills get paid.", looks: "What it owes, Cash from profit." },
+    bull: { name: "The Bull", role: "Growth investor", says: "Think bigger.",     story: "You own a piece of the company and want it far bigger in five years.",
+            worries: "Research or investment being cut. Margins shrinking.", forgives: "Heavy spending and thin cash today, if it is building something.", looks: "Gross profit, R&D, Capital expenditure." },
+    bear: { name: "The Bear", role: "Sceptic",         says: "Prove it.",         story: "You assume the numbers are flattering until shown otherwise.",
+            worries: "Anything that moved a lot, in either direction. Even good news.", forgives: "Very little. Boring and steady is what you like.", looks: "Accounts receivable, Cash from profit, Effective tax rate." },
   };
   const face = a => `<svg class="face" viewBox="0 0 512 512" aria-hidden="true"><use href="#av-${a}"/></svg>`;
   let avatar = "owl"; // the lender is where a newcomer starts
-  try { const a = JSON.parse(localStorage.getItem("sc:prefs"))?.avatar; if (AV[a]) avatar = a; } catch {}
+  let chosen = false; // false until you have picked an analyst once: the home screen walks a first-time visitor through it
+  let peek = "";      // on that first visit, the one you are reading about before you commit
+  try { const a = JSON.parse(localStorage.getItem("sc:prefs"))?.avatar; if (AV[a]) { avatar = a; chosen = true; } } catch {}
   // A company's cards as your analyst reads them: its label, reason, rule table and next step,
   // plus what the other two said. Cards with nothing to label pass through unchanged.
   const asAvatar = d => d && ({ ...d, cards: d.cards.map(c => {
@@ -663,11 +685,21 @@
 
   // ---------- Choosing your analyst: on the home screen, and from the top bar anywhere else ----------
   const paintWho = () => {
-    $("whorow").innerHTML = Object.entries(AV).map(([a, v]) => `<button class="who-btn" type="button" role="radio" aria-checked="${a === avatar}" aria-label="${v.name}, the ${v.role.toLowerCase()}" title="${v.name} · ${v.role}" data-avatar="${a}">${face(a)}</button>`).join("");
-    $("whostory").innerHTML = `Reading as <b>${AV[avatar].name}</b>, the ${AV[avatar].role.toLowerCase()}. "${AV[avatar].says}"`;
+    // First visit: only the three analysts show. Tap one to read about it, then continue; the search box comes after.
+    const sel = chosen ? avatar : peek, v = AV[sel];
+    $("ask").classList.toggle("first", !chosen);
+    $("whotitle").textContent = chosen ? "Who are you today?" : "Pick your avatar to proceed";
+    $("whowhy").hidden = chosen;
+    $("whorow").innerHTML = Object.entries(AV).map(([a, x]) => `<button class="who-btn" type="button" role="radio" aria-checked="${a === sel}" data-avatar="${a}">${face(a)}<b>${x.name}</b><span>${x.role}</span></button>`).join("");
+    const small = `<small>Three simplified characters for learning. Not industry rules, not advice.</small>`;
+    $("whostory").innerHTML = chosen ? `<b>"${v.says}"</b> ${v.story}${small}`
+      : !v ? `<small>Tap one to see how they think. You can switch at any time.</small>`
+      : `<b>"${v.says}"</b> ${v.story}
+         <span class="who-more"><span><i>What worries you</i>${v.worries}</span><span><i>What you forgive</i>${v.forgives}</span><span><i>Where you look first</i>${v.looks}</span></span>
+         <button class="go" type="button" id="whogo">Continue as ${v.name} →</button>${small}`;
     $("avbtn").innerHTML = face(avatar);
     $("avbtn").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
-    $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Simplified characters for learning, not industry rules. Your guesses are kept separately for each one.</p>`;
+    $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Your guesses are kept separately for each one.</p>`;
   };
   const closeAvMenu = () => { $("avmenu").hidden = true; $("avbtn").setAttribute("aria-expanded", "false"); };
   $("avbtn").addEventListener("click", e => {
@@ -678,9 +710,15 @@
   document.addEventListener("click", e => {
     const pick = e.target.closest("[data-avatar]");
     if (!pick) return;
-    avatar = pick.dataset.avatar; prefs.avatar = avatar; store.set("sc:prefs", prefs);
+    if (!chosen && pick.closest("#whorow")) { peek = pick.dataset.avatar; return paintWho(); } // first visit: read about it first
+    avatar = pick.dataset.avatar; chosen = true; prefs.avatar = avatar; store.set("sc:prefs", prefs);
     closeAvMenu(); paintWho();
     data = other = null; render();   // the same screen, read again as the new analyst
+  });
+  $("whostory").addEventListener("click", e => { // "Continue as …": the choice is made, and the search box appears
+    if (!e.target.closest("#whogo") || !peek) return;
+    avatar = peek; chosen = true; prefs.avatar = avatar; store.set("sc:prefs", prefs);
+    paintWho(); data = other = null; render(); $("q").focus();
   });
   document.addEventListener("click", e => {
     if ($("avmenu").hidden || e.target.closest("#avmenu, #avbtn")) return;
@@ -733,7 +771,7 @@
   // The first time, on the home screen only: someone following a link to a company should see the company.
   let seenIntro = true;
   try { seenIntro = localStorage.getItem("sc:intro") === "1"; } catch {}
-  if (!seenIntro && !new URLSearchParams(location.search).get("ticker")) openIntro();
+  // A first-time visitor is walked through choosing an analyst instead (see paintWho); "How it works" still opens this.
 
   // ---------- Recently read: the last few companies you opened, on the home screen ----------
   const recents = () => { try { const r = JSON.parse(localStorage.getItem("sc:recent")); return Array.isArray(r) ? r.filter(c => c && c.ticker && c.label) : []; } catch { return []; } };
