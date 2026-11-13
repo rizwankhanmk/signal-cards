@@ -7,6 +7,7 @@
     "fetch": "node --env-file=.env fetch.mjs",
     "start": "node --env-file=.env local-server.mjs",
     "test": "node --test",
-    "avatars": "node --env-file=.env avatars-run.mjs"
+    "avatars": "node --env-file=.env avatars-run.mjs",
+    "look": "node --env-file=.env look.mjs"
   }
 }
