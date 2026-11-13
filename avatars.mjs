@@ -64,13 +64,13 @@ const RULES = {
   "Effective tax rate": {
     owl:  ({ change }) => first([change > 10, X], [change > 5, W]),
     bull: ({ change }) => first([change > 10, X], [change > 5, W]),
-    bear: ({ level, change }) => first([Math.abs(change) > 2, X], [level < 15, W]),
+    bear: ({ level, change }) => first([Math.abs(change) > 4, X], [level < 15, W]),
   },
   // Did the profit arrive as cash? The lender is strict, the bull relaxed, the bear wary of swings.
   "Cash from profit": {
     owl:  ({ level }) => first([level < 80, X], [level < 100, W]),
     bull: ({ level }) => first([level < 50, X], [level < 80, W]),
-    bear: ({ level, change }) => first([level < 80, X], [level < 100, W], [change < -20, W], [level > 150, W]),
+    bear: ({ level, change }) => first([level < 80, X], [level < 100, W], [change < -20, W]),
   },
   // Cash left after spending. The bull forgives a negative number while investment is rising.
   "Free cash flow": {
@@ -84,10 +84,10 @@ const RULES = {
     bull: ({ level, change }) => first([level > 90, X], [change > 5, W]),
     bear: ({ level, change }) => first([change > 10, X], [Math.abs(change) > 5, W], [level > 75, W]),
   },
-  // What the assets earn. "k" shrinks the cut-offs for banks, where one point is a big move.
+  // What the assets earn. Flat is fine for all three; the bull keeps its "must improve" rule for gross margin only. "k" shrinks the cut-offs for banks, where one point is a big move.
   "Return on assets": {
     owl:  ({ level, change, steady: k = 1 }) => first([level < 0, X], [change < -2 * k, W]),
-    bull: ({ level, change, steady: k = 1 }) => first([level < 0, X], [change < -2 * k, X], [change <= 0.5 * k, W]),
+    bull: ({ level, change, steady: k = 1 }) => first([level < 0, X], [change < -2 * k, X], [change < -0.5 * k, W]),
     bear: ({ level, change, steady: k = 1 }) => first([level < 0, X], [change < -2 * k, X], [change < -1 * k, W], [change > 10 * k, W]),
   },
 };
