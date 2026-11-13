@@ -6,7 +6,7 @@ import { buildCards } from "./signals.mjs";
 
 // Bump when the saved shape changes, so old saved files are refetched. Bump PAGE_VERSION in
 // public/index.html to the same number: an open page that is older than the data reloads itself.
-export const VERSION = 14;
+export const VERSION = 15;
 const TICKER_LIST = "https://www.sec.gov/files/company_tickers.json";
 const HOURS = 3_600_000;
 // Where saved copies go. On your computer: the data/ folder. On Vercel the project folder is
@@ -156,6 +156,13 @@ export async function fresh(UA, limit = 12) {
   return list.slice(0, limit);
 }
 
+// Tickers that now point at a new parent company with no annual report of its own yet.
+// Each entry was checked against the SEC's own records (npm run look) before being added.
+//   key: the new record's number.  cik: the old record that holds the annual reports.
+export const PREDECESSOR = {
+  2115436: { cik: 34088, name: "Exxon Mobil Corporation", since: "1 July 2026" }, // XOM -> ExxonMobil Holdings Corp (8-K12B filed 2026-07-01)
+};
+
 // The eight cards for one ticker. Uses the saved copy if it is under a day old, unless fresh is true.
 export async function cardsFor(rawTicker, UA, { fresh = false } = {}) {
   const ticker = cleanTicker(rawTicker);
@@ -166,23 +173,46 @@ export async function cardsFor(rawTicker, UA, { fresh = false } = {}) {
   }
   const hit = (await companies(UA)).find(c => c.ticker === ticker);
   if (!hit) throw new Friendly(`No company with the ticker ${ticker} in the SEC's list. Check the spelling. Only US-listed companies are covered so far.`, 404);
-  const cik = String(hit.cik).padStart(10, "0");
-  const source_api = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
-  const facts = await getJson(source_api, UA);
-  const sub = await getJson(`https://data.sec.gov/submissions/CIK${cik}.json`, UA); // industry code, forms and document names; fine if missing
+  // Read one SEC company record: its numbers, its industry and forms, and the main document of each filing.
+  const read = async number => {
+    const cik = String(number).padStart(10, "0");
+    const source_api = `https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`;
+    const facts = await getJson(source_api, UA);
+    const sub = await getJson(`https://data.sec.gov/submissions/CIK${cik}.json`, UA); // fine if missing
+    const recent = sub?.filings?.recent, docs = {};
+    if (Array.isArray(recent?.accessionNumber) && Array.isArray(recent?.primaryDocument)) {
+      recent.accessionNumber.forEach((accn, i) => { const doc = recent.primaryDocument[i]; if (/^[\w.-]+\.html?$/i.test(doc ?? "")) docs[accn] = doc; });
+    }
+    return { cik, source_api, facts, sub, docs, forms: Array.isArray(recent?.form) ? recent.form : [] };
+  };
+  const build = r => buildCards(r.facts, r.cik, { sic: r.sub?.sic, sicDescription: r.sub?.sicDescription, docs: r.docs });
+
+  let rec = await read(hit.cik);
   // Companies based outside the US file a 20-F or 40-F, not a 10-K, and follow different accounting rules.
-  const forms = Array.isArray(sub?.filings?.recent?.form) ? sub.filings.recent.form : [];
-  const abroad = !forms.includes("10-K") && forms.find(f => f === "20-F" || f === "40-F");
+  const abroad = !rec.forms.includes("10-K") && rec.forms.find(f => f === "20-F" || f === "40-F");
   const elsewhere = `${hit.name} is based outside the US and reports under different rules (it files a ${abroad}, not a 10-K). Companies like this are on the way, along with Singapore and India.`;
-  if (!facts) throw new Friendly(abroad ? elsewhere : `The SEC has no financial data for ${hit.name} (${ticker}).`, 404);
-  // For each recent filing, the name of its main document, so cards can link straight into the 10-K.
-  const recent = sub?.filings?.recent, docs = {};
-  if (Array.isArray(recent?.accessionNumber) && Array.isArray(recent?.primaryDocument)) {
-    recent.accessionNumber.forEach((accn, i) => { const doc = recent.primaryDocument[i]; if (/^[\w.-]+\.html?$/i.test(doc ?? "")) docs[accn] = doc; });
+  // A ticker that has moved to a new parent company has no annual report of its own yet. Until it files one,
+  // read the last annual report of the company it took over from, and say so.
+  const before = PREDECESSOR[Number(hit.cik)];
+  let built, inherited = null;
+  try {
+    if (!rec.facts) throw new Friendly(`The SEC has no financial data for ${hit.name} (${ticker}).`, 404);
+    built = build(rec);
+  } catch (e) {
+    const old = before && !abroad ? await read(before.cik) : null;
+    if (old?.facts) {
+      try { built = build(old); rec = old; inherited = before; } catch { /* fall through to the first error */ }
+    }
+    if (!built) {
+      if (abroad) throw new Friendly(elsewhere, e instanceof Friendly ? e.status : 422);
+      throw e instanceof Friendly ? e : new Friendly(`${hit.name} (${ticker}): ${e.message}`, 422);
+    }
   }
-  let built;
-  try { built = buildCards(facts, cik, { sic: sub?.sic, sicDescription: sub?.sicDescription, docs }); }
-  catch (e) { throw new Friendly(abroad ? elsewhere : `${hit.name} (${ticker}): ${e.message}`, 422); }
+  if (inherited) {
+    const moved = `${ticker} moved to a new parent company, ${hit.name}, on ${inherited.since}, and that company has not filed an annual report yet. These numbers come from the last annual report of ${inherited.name}, the company it took over from.`;
+    built.note = [moved, built.note].filter(Boolean).join(" ");
+  }
+  const { cik, source_api, facts } = rec;
   const out = { version: VERSION, ticker, cik, fetched_at: new Date().toISOString(), source_api, ...built, company: hit.name, company_sec: facts.entityName };
   await save(file, out);
   return out;

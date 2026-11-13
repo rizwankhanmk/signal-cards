@@ -135,6 +135,14 @@ where the three agree and where they split.
 After a reveal, tap one of the other two analysts to read its reason. The end screen offers the same
 company again as each of the other two. On the home screen a line under the search box names your analyst.
 
+## When a ticker moves to a new parent company
+
+Sometimes a company reorganises under a new parent and its ticker moves to a new SEC record that has no
+annual report yet (Exxon did this on 1 July 2026). Until the new parent files one, the app reads the last
+annual report of the company it took over from and says so at the top of the cards. The known cases are
+listed in `PREDECESSOR` in `sec.mjs`; each is checked against the SEC first with `npm run look TICKER`,
+which prints what the SEC holds for a ticker or a record number.
+
 ## Tests
 
 `npm test` runs `test/cards.test.mjs`: every row of the label rules below, the formulas, units, restated
