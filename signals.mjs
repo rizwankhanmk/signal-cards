@@ -477,7 +477,7 @@ export function buildCards(facts, cik, info = {}) {
     if (!F[key]) return missingCard(signal, [CONCEPTS[key].name], financialNote);
     const row = growthRow(F[key]);
     if (s === null || row.growth_pct === null) return card(signal, [salesRow, row], null, { state: "No label", note: "A growth rate could not be worked out because last year's figure was zero." });
-    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller), ratios: ratiosFor(key),
+    return card(signal, [salesRow, row], labeller(s, row.growth_pct), { gap_pp: round1(row.growth_pct - s), nums: { s, g: row.growth_pct }, big: signedPct(row.growth_pct), small: `vs sales ${signedPct(s)}`, trend: paceTrend(key, labeller), ratios: ratiosFor(key),
       caption: `${CONCEPTS[key].name} growth`, caption_plain: `${CONCEPTS[key].plain} growth`, // what the big number is
       rule: ruleOf(key === "capex" || key === "rnd" ? "invest" : "pace", s, row.growth_pct) });
   }
@@ -502,7 +502,7 @@ export function buildCards(facts, cik, info = {}) {
     const grossSeries = F.cost ? seriesOf(F.cost).map((c, k) => c === null ? null : salesSeries[k] - c) : seriesOf(F.gross);
     const margins = grossSeries.map((g, k) => g === null ? null : round1(g / salesSeries[k] * 100));
     const trend = rateTrend("Gross margin", "Kept from each sales dollar", margins, (k, ch, a, b) => salesGrowth(k) === null ? "—" : marginLabel(salesGrowth(k), ch, a, b).name);
-    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, big: `${one(ma)}%`, small: `${signed(change)} points on last year`, trend, rule: s === null ? null : ruleOf("margin", s, change),
+    return card("Gross profit", rows, s === null ? null : marginLabel(s, change, ma, mb), { change_pp: change, nums: { s, level: ma, last: mb, change }, big: `${one(ma)}%`, small: `${signed(change)} points on last year`, trend, rule: s === null ? null : ruleOf("margin", s, change),
       caption: "Gross margin", caption_plain: "Kept from each sales dollar" });
   }
 
@@ -519,7 +519,7 @@ export function buildCards(facts, cik, info = {}) {
     const [taxes, pretaxes] = [seriesOf(F.tax), seriesOf(F.pretax)];
     const rates = taxes.map((t, k) => t === null || pretaxes[k] === null || pretaxes[k] <= 0 ? null : round1(t / pretaxes[k] * 100));
     const trend = rateTrend("Effective tax rate", "Share of profit paid in tax", rates, (k, ch, a, b) => taxLabel(ch, a, b).name);
-    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend, rule: ruleOf("tax", change),
+    return card("Effective tax rate", rows, taxLabel(change, ra, rb), { change_pp: change, nums: { level: ra, last: rb, change }, big: `${one(ra)}%`, small: `${signed(change)} points on last year`, trend, rule: ruleOf("tax", change),
       caption: "Effective tax rate", caption_plain: "Share of profit paid in tax" });
   }
 
@@ -537,7 +537,7 @@ export function buildCards(facts, cik, info = {}) {
   const rateCard = (signal, rows, name, plain, a, b, howA, howB, small, label, series, labelFor, ruleFor) => {
     const change = round1(a - b);
     rows.push(worked(name, plain, `${neg(a)}%`, `${neg(b)}%`, [`${howA} = ${neg(a)}%`, `${howB} = ${neg(b)}%`, `${neg(a)} − ${inBrackets(b)} = ${signed(change)} percentage points`]));
-    return card(signal, rows, label(change), { change_pp: change, big: `${neg(a)}%`, small: `${signed(change)} points on last year`, measure: small, trend: rateTrend(name, plain, series, labelFor), rule: ruleFor(change), caption: name, caption_plain: plain });
+    return card(signal, rows, label(change), { change_pp: change, nums: { level: a, last: b, change }, big: `${neg(a)}%`, small: `${signed(change)} points on last year`, measure: small, trend: rateTrend(name, plain, series, labelFor), rule: ruleFor(change), caption: name, caption_plain: plain });
   };
 
   function cashFromProfit() {
@@ -562,7 +562,9 @@ export function buildCards(facts, cik, info = {}) {
       worked("Free cash flow", "Cash left over", fmt(fa), fmt(fb), [`${fmt(ca)} − ${fmt(xa)} = ${fmt(fa)}`, `${fmt(cb)} − ${fmt(xb)} = ${fmt(fb)}`])];
     const [cs, xs] = [seriesOf(F.ocf), seriesOf(F.capex)];
     const series = cs.map((c, k) => c === null || xs[k] === null ? null : round1((c - xs[k]) / salesSeries[k] * 100));
-    return rateCard("Free cash flow", rows, "Free cash flow margin", "Cash left over as a share of sales", ma, mb, `${fmt(fa)} ÷ ${fmt(sa)} × 100`, `${fmt(fb)} ÷ ${fmt(sb)} × 100`, "of sales left as free cash", ch => fcfLabel(ch, ma, mb), series, (k, ch, a, b) => fcfLabel(ch, a, b).name, ch => ruleOf("fcf", ch, ma));
+    const made = rateCard("Free cash flow", rows, "Free cash flow margin", "Cash left over as a share of sales", ma, mb, `${fmt(fa)} ÷ ${fmt(sa)} × 100`, `${fmt(fb)} ÷ ${fmt(sb)} × 100`, "of sales left as free cash", ch => fcfLabel(ch, ma, mb), series, (k, ch, a, b) => fcfLabel(ch, a, b).name, ch => ruleOf("fcf", ch, ma));
+    if (made.nums) made.nums.capex_growth = xb > 0 ? round1((xa - xb) / xb * 100) : null;
+    return made;
   }
 
   function whatItOwes() {
@@ -587,7 +589,9 @@ export function buildCards(facts, cik, info = {}) {
     const rows = [inputRow(F.netincome), inputRow(F.assets)];
     const [ns, as] = [seriesOf(F.netincome), seriesOf(F.assets)];
     const series = ns.map((n, k) => n === null || as[k] === null || as[k] <= 0 ? null : round1(n / as[k] * 100));
-    return rateCard("Return on assets", rows, "Return on assets", "What the assets earn", ra, rb, `${fmt(na)} ÷ ${fmt(aa)} × 100`, `${fmt(nb)} ÷ ${fmt(ab)} × 100`, "earned on its assets", ch => roaLabel(ch, ra, rb, steady), series, (k, ch, a, b) => roaLabel(ch, a, b, steady).name, ch => ruleOf("roa", ch, ra, steady));
+    const made = rateCard("Return on assets", rows, "Return on assets", "What the assets earn", ra, rb, `${fmt(na)} ÷ ${fmt(aa)} × 100`, `${fmt(nb)} ÷ ${fmt(ab)} × 100`, "earned on its assets", ch => roaLabel(ch, ra, rb, steady), series, (k, ch, a, b) => roaLabel(ch, a, b, steady).name, ch => ruleOf("roa", ch, ra, steady));
+    if (made.nums) made.nums.steady = steady;
+    return made;
   }
 
   const cards = [
