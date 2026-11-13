@@ -404,9 +404,19 @@
   .av-note { font-size: 12px; color: var(--muted); margin: 4px 6px 0; }
   .ask-flag .as { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; }
   .ask-flag .as .face { width: 34px; height: 34px; }
-  .hero .others { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 18px; font-size: 15px; margin: 22px 0 0; }
+  .hero .others { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; font-size: 15px; margin: 22px 0 0; }
   .hero .others small { flex-basis: 100%; font-size: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
-  .hero .others span { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); }
+  .hero .others .other { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 4px 12px 4px 6px; border: 0; border-radius: 999px; background: none; font: inherit; color: var(--muted); cursor: pointer; }
+  .hero .others .other:hover, .hero .others .other[aria-expanded="true"] { background: var(--surface); }
+  .hero .others .other-why { flex-basis: 100%; font-size: 13px; color: var(--muted); text-wrap: balance; }
+  .hero .others .other-why.shown { font-size: 15px; color: var(--text); max-width: 26rem; margin: 2px auto 0; padding: 10px 14px; border-radius: 14px; background: var(--surface); }
+  .reading-as { font-size: 14px; color: var(--muted); margin: 14px 0 0; }
+  .reading-as b { color: var(--text); font-weight: 600; }
+  .ask.small .reading-as { display: none; }
+  .cp-as { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0; }
+  .playas { display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 6px 18px 6px 8px; font-size: 15px; text-align: left; }
+  .playas .face { width: 38px; height: 38px; }
+  .playas small { display: block; font-size: 12px; color: var(--muted); }
   .hero .others b { color: var(--text); font-weight: 600; }
   .hero .others .face { width: 26px; height: 26px; }
   .hero .others .mark { margin-right: 0; }
@@ -562,6 +572,7 @@
         </div>
         <button class="go">Read</button>
       </form>
+      <p class="reading-as" id="readingas" hidden></p>
       <p class="offline" id="offline" hidden>You are offline. Companies you have already read still open.</p>
       <p class="tries" id="recent" hidden></p>
       <p class="tries" id="tryrow"><span id="trylabel">Try</span>
@@ -659,7 +670,7 @@
     if (!me) return c;
     return { ...c, tone: me.tone, label: { name: me.name, reason: me.reason, plain: me.plain }, rule: me.rule,
       next: me.next ? { investor: me.next, cfo: me.next } : null, trend: c.trend && { ...c.trend, noLabels: true },
-      others: Object.keys(AV).filter(a => a !== avatar).map(a => ({ who: a, tone: c.avatars[a].tone, name: c.avatars[a].name })) };
+      others: Object.keys(AV).filter(a => a !== avatar).map(a => ({ who: a, tone: c.avatars[a].tone, name: c.avatars[a].name, reason: c.avatars[a].reason, plain: c.avatars[a].plain })) };
   }) });
 
   // "Tap" on a touch screen, "Click" with a mouse.
@@ -768,6 +779,8 @@
     $("who").hidden = chosen;                  // once chosen, the picker steps aside: your analyst lives in the search box
     $("boxav").hidden = !chosen; $("boxav").innerHTML = face(avatar) + '<span class="av-swap" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9h11l-3-3M17 15H6l3 3"/></svg></span>'; $("boxav").dataset.who = avatar;
     $("ask").classList.toggle("has-av", chosen);
+    $("readingas").hidden = !chosen;
+    $("readingas").innerHTML = `Reading as <b>${AV[avatar].name}</b>, the ${AV[avatar].role.toLowerCase()}. "${AV[avatar].says}"`;
     $("avbtn").innerHTML = face(avatar);
     $("avbtn").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
     $("boxav").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
@@ -791,7 +804,9 @@
     if (!chosen && pick.closest("#whorow")) { peek = pick.dataset.avatar; return paintWho(); } // first visit: read about it first
     avatar = pick.dataset.avatar; chosen = true; prefs.avatar = avatar; store.set("sc:prefs", prefs);
     closeAvMenu(); paintWho();
-    data = other = null; render();   // the same screen, read again as the new analyst
+    data = other = null;
+    if (pick.dataset.goto) return go(where().ticker, Number(pick.dataset.goto)); // "Play it as …": start again at the first card
+    render();                        // otherwise the same screen, read again as the new analyst
   });
   $("whostory").addEventListener("click", e => { // "Continue as …": the choice is made, and the search box appears
     if (!e.target.closest("#whogo") || !peek) return;
@@ -1159,6 +1174,9 @@
         ${score ? `<p class="cp-score">${esc(score)}</p>` : ""}
         ${end && best(d) ? `<p class="cp-best muted">Your best on this report: ${best(d).caught} of ${best(d).of}.</p>` : ""}
         ${marks ? `<p class="cp-tally">${marks}</p>` : ""}
+        ${end && live(d).some(k => d.cards[k - 1].avatars) ? `<p class="cp-next"><small>Same numbers, different eyes</small></p><p class="cp-as">${Object.keys(AV).filter(a => a !== avatar).map(a => {
+          const b = store.get(`sc:best:${d.ticker}:${d.fiscal.this_year.end}:${a}`);
+          return `<button class="pill playas" type="button" data-avatar="${a}" data-goto="${live(d)[0]}">${face(a)}<span>Play it as ${AV[a].name}${b.of ? `<small>best ${b.caught} of ${b.of}</small>` : ""}</span></button>`; }).join("")}</p>` : ""}
         ${end ? (others.length ? `<p class="cp-next"><small>Read another</small></p><p class="tries cp-tries">${others.map(c => `<button class="chip" type="button" data-try="${esc(c.ticker)}">${esc(c.label)}</button>`).join(" ")}</p>` : "")
               : `<p class="cp-next"><small>Next</small>${esc(next.deck)}. ${esc(DECK_BLURB[next.deck] ?? "")}</p>`}
         <div class="cp-actions">
@@ -1267,7 +1285,7 @@
           <p class="name">${mark(c.tone)}${esc(c.label ? c.label.name : c.state)}</p>
           <p class="line${c.label ? "" : " plain"}">${esc(c.label ? (plain() ? c.label.plain : c.label.reason) : c.note)}</p>
           ${missed && c.rule?.hit >= 0 ? `<p class="why"><small>Why it is ${esc(c.label.name)}</small>${esc(c.rule.rows[c.rule.hit][0].replace(/the item/g, W(c, "signal").toLowerCase()))}.</p>` : ""}
-          ${c.others ? `<p class="others"><small>The other two</small>${c.others.map(o => `<span>${face(o.who)}${AV[o.who].name}: ${mark(o.tone)}<b>${esc(o.name)}</b></span>`).join("")}</p>` : ""}
+          ${c.others ? `<p class="others"><small>The other two</small>${c.others.map(o => `<button class="other" type="button" data-other="${o.who}" data-why="${esc(plain() ? o.plain : o.reason)}" aria-expanded="false">${face(o.who)}${AV[o.who].name}: ${mark(o.tone)}<b>${esc(o.name)}</b></button>`).join("")}<span class="other-why" id="otherwhy" aria-live="polite">${TAP} one to see why.</span></p>` : ""}
           ${c.next ? `<p class="next"><small>${READER[prefs.reader]}</small>${esc(c.next[prefs.reader])}</p>` : ""}
           ${place >= 0 ? `<button class="pill nextpill" type="button" data-forward>${next ? "Next: " : ""}${esc(nextLabel)} →</button>` : ""}
         </div>
@@ -1414,6 +1432,15 @@
     if (!b) return;
     prefs[b.dataset.pref] = b.dataset.val;
     store.set("sc:prefs", prefs); paintPrefs(); render();
+  });
+  // On a revealed card, tap one of the other two analysts to read its reason. Tap again to put it away.
+  $("detail").addEventListener("click", e => {
+    const b = e.target.closest(".other");
+    if (!b) return;
+    const open = b.getAttribute("aria-expanded") !== "true";
+    document.querySelectorAll("#detail .other").forEach(x => x.setAttribute("aria-expanded", String(x === b && open)));
+    $("otherwhy").classList.toggle("shown", open);
+    $("otherwhy").innerHTML = open ? `<b>${AV[b.dataset.other].name}:</b> ${esc(b.dataset.why)}` : `${TAP} one to see why.`;
   });
   // Remember which folded sections are open, so they stay that way on the next card.
   $("detail").addEventListener("toggle", e => {

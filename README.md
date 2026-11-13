@@ -132,6 +132,9 @@ After a reveal the card shows what the other two said. The rulebooks are a simpl
 not an industry standard, and nothing in them is advice. `npm run avatars` prints, for real companies,
 where the three agree and where they split.
 
+After a reveal, tap one of the other two analysts to read its reason. The end screen offers the same
+company again as each of the other two. On the home screen a line under the search box names your analyst.
+
 ## Tests
 
 `npm test` runs `test/cards.test.mjs`: every row of the label rules below, the formulas, units, restated
