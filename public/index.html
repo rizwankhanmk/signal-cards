@@ -352,7 +352,22 @@
   .who-story small { display: block; font-size: 12px; margin-top: 6px; }
   .ask.small .who { display: none; }
   /* First visit: the analysts only. The search box and suggestions come after the choice. */
-  .ask.first:not(.small) .lede, .ask.first:not(.small) form, .ask.first:not(.small) .tries, .ask.first:not(.small) .soonline, .ask.first:not(.small) .offline { display: none; }
+  .ask.first:not(.small) > .lede, .ask.first:not(.small) form, .ask.first:not(.small) .tries, .ask.first:not(.small) .soonline, .ask.first:not(.small) .offline { display: none; }
+  .ask.telling:not(.small) #motto, .ask.telling:not(.small) .who { display: none; }
+  .ask.small .tale { display: none; }
+  .tale-step { font-size: 13px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 0 0 18px; }
+  .tale .lede { max-width: 30rem; margin: 0 auto 26px; text-wrap: balance; }
+  .tale-art { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 150px; max-width: 26rem; margin: 0 auto 28px; padding: 20px 16px; border-radius: 22px; background: var(--surface); }
+  .tale-go { margin: 0 0 6px; }
+  .tale-skip { font-size: 14px; color: var(--muted); }
+  .eg-pages { display: flex; gap: 6px; align-items: flex-end; }
+  .eg-pages i { width: 34px; height: 46px; border-radius: 5px; background: var(--bg); border: 1.5px solid color-mix(in srgb, var(--text) 22%, transparent);
+                background-image: repeating-linear-gradient(to bottom, transparent 0 7px, color-mix(in srgb, var(--text) 16%, transparent) 7px 9px); background-size: 60% 100%; background-repeat: no-repeat; background-position: center 4px; }
+  .eg-three { display: flex; gap: 22px; margin-top: 6px; }
+  .eg-who { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 13px; color: var(--muted); }
+  .eg-who .face { width: 48px; height: 48px; margin-bottom: 4px; }
+  .eg-who b { font-size: 15px; font-weight: 600; color: var(--text); }
+  .eg-who .mark { margin-right: .35em; }
   .who-why { font-size: 16px; color: var(--muted); margin: -4px 0 16px; text-wrap: balance; }
   .who-more { display: grid; gap: 10px; margin: 16px auto 20px; padding: 16px 18px; max-width: 26rem; border-radius: 18px; background: var(--surface); text-align: left; font-size: 15px; color: var(--text); }
   .who-more span { display: block; }
@@ -500,6 +515,15 @@
   <main id="main" tabindex="-1">
     <p class="sr" id="say" aria-live="polite"></p>
     <section class="ask" id="ask">
+      <!-- First visit only: the story of the game, three short screens, before you pick who you are -->
+      <div class="tale" id="tale" hidden>
+        <p class="tale-step" id="talestep"></p>
+        <h1 class="motto" id="talehead"></h1>
+        <p class="lede" id="taletext"></p>
+        <div class="tale-art" id="taleart"></div>
+        <p class="tale-go"><button class="go" type="button" id="talenext">Next</button></p>
+        <p><button class="linkish tale-skip" type="button" id="taleskip">Skip the story</button></p>
+      </div>
       <p class="motto" id="motto">Money talks. Learn to listen.</p>
       <p class="lede">Type a company. Read its annual report, one card at a time.</p>
       <div class="who" id="who">
@@ -684,11 +708,33 @@
   paintTheme();
 
   // ---------- Choosing your analyst: on the home screen, and from the top bar anywhere else ----------
+  // The story a first-time visitor reads before choosing. The numbers in the pictures are examples.
+  const egFace = (a, tone, word) => `<span class="eg-who">${face(a)}<span>${AV[a].name}</span><b>${mark(tone)}${word}</b></span>`;
+  const TALE = [
+    ["Every company writes its own report card.", "Once a year. Hundreds of pages. Almost nobody reads it.",
+     `<span class="eg-pages"><i></i><i></i><i></i><i></i><i></i></span><span class="art-vs">The annual report</span>`],
+    ["We cut it down to twelve numbers.", "One card each, straight from the filing. You make the call: good, watch or warning.",
+     `<span class="art-vs">Example · Inventory growth</span><span class="art-num">+4.3%</span><span class="art-vs">vs sales +11.0%</span><span class="art-row"><i class="mark good"></i>Good<i class="mark watch"></i>Watch<i class="mark warn"></i>Warning</span>`],
+    ["Good for whom?", "A lender, an investor and a sceptic look at the same number and disagree. Each one has a reason.",
+     `<span class="art-vs">Example · the same card, three readers</span><span class="eg-three">${egFace("owl", "good", "Good")}${egFace("bull", "good", "Good")}${egFace("bear", "watch", "Watch")}</span>`],
+  ];
+  let beat = 0;
+  $("talenext").addEventListener("click", () => { beat++; paintWho(); scrollTo(0, 0); });
+  $("taleskip").addEventListener("click", () => { beat = TALE.length; paintWho(); });
   const paintWho = () => {
+    // First visit: the story comes first, one screen at a time.
+    const telling = !chosen && beat < TALE.length;
+    $("ask").classList.toggle("telling", telling);
+    $("tale").hidden = !telling;
+    if (telling) {
+      const [head, text, art] = TALE[beat];
+      $("talestep").textContent = `${beat + 1} of ${TALE.length + 1}`;
+      $("talehead").textContent = head; $("taletext").textContent = text; $("taleart").innerHTML = art;
+    }
     // First visit: only the three analysts show. Tap one to read about it, then continue; the search box comes after.
     const sel = chosen ? avatar : peek, v = AV[sel];
     $("ask").classList.toggle("first", !chosen);
-    $("whotitle").textContent = chosen ? "Who are you today?" : "Pick your avatar to proceed";
+    $("whotitle").textContent = chosen ? "Who are you today?" : `${TALE.length + 1} of ${TALE.length + 1} · Pick your avatar to proceed`;
     $("whowhy").hidden = chosen;
     $("whorow").innerHTML = Object.entries(AV).map(([a, x]) => `<button class="who-btn" type="button" role="radio" aria-checked="${a === sel}" data-avatar="${a}">${face(a)}<b>${x.name}</b><span>${x.role}</span></button>`).join("");
     const small = `<small>Three simplified characters for learning. Not industry rules, not advice.</small>`;
