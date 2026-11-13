@@ -368,6 +368,12 @@
   .eg-who .face { width: 48px; height: 48px; margin-bottom: 4px; }
   .eg-who b { font-size: 15px; font-weight: 600; color: var(--text); }
   .eg-who .mark { margin-right: .35em; }
+  .box-av { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; padding: 2px; border: 0; border-radius: 50%; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .box-av .face { width: 36px; height: 36px; }
+  .box-av:hover, .box-av[aria-expanded="true"] { box-shadow: 0 0 0 2px color-mix(in srgb, var(--text) 35%, transparent); }
+  .ask.has-av:not(.small) #q { padding-right: 54px; }
+  .ask.small .box-av, .ask.small .boxmenu { display: none; }
+  .boxmenu { right: 0; top: calc(100% + 8px); text-align: left; }
   .who-why { font-size: 16px; color: var(--muted); margin: -4px 0 16px; text-wrap: balance; }
   .who-more { display: grid; gap: 10px; margin: 16px auto 20px; padding: 16px 18px; max-width: 26rem; border-radius: 18px; background: var(--surface); text-align: left; font-size: 15px; color: var(--text); }
   .who-more span { display: block; }
@@ -537,6 +543,8 @@
           <input id="q" name="q" placeholder="Company or ticker" aria-label="Company name or US ticker" autocomplete="off" spellcheck="false" maxlength="40"
                  role="combobox" aria-expanded="false" aria-controls="hits" aria-autocomplete="list">
           <ul class="hits" id="hits" role="listbox" hidden></ul>
+          <button class="box-av" id="boxav" type="button" aria-expanded="false" aria-controls="boxmenu" hidden></button>
+          <div class="switches avmenu boxmenu" id="boxmenu" hidden></div>
         </div>
         <button class="go">Read</button>
       </form>
@@ -713,7 +721,7 @@
   const TALE = [
     ["Every company writes its own report card.", "Once a year. Hundreds of pages. Almost nobody reads it.",
      `<span class="eg-pages"><i></i><i></i><i></i><i></i><i></i></span><span class="art-vs">The annual report</span>`],
-    ["We cut it down to twelve numbers.", "One card each, straight from the filing. You make the call: good, watch or warning.",
+    ["We cut it down to twelve numbers.", "One card each, straight from the filing. You make the call: is this GOOD, a WATCH or a WARNING?",
      `<span class="art-vs">Example · Inventory growth</span><span class="art-num">+4.3%</span><span class="art-vs">vs sales +11.0%</span><span class="art-row"><i class="mark good"></i>Good<i class="mark watch"></i>Watch<i class="mark warn"></i>Warning</span>`],
     ["Good for whom?", "A lender, an investor and a sceptic look at the same number and disagree. Each one has a reason.",
      `<span class="art-vs">Example · the same card, three readers</span><span class="eg-three">${egFace("owl", "good", "Good")}${egFace("bull", "good", "Good")}${egFace("bear", "watch", "Watch")}</span>`],
@@ -743,11 +751,21 @@
       : `<b>"${v.says}"</b> ${v.story}
          <span class="who-more"><span><i>What worries you</i>${v.worries}</span><span><i>What you forgive</i>${v.forgives}</span><span><i>Where you look first</i>${v.looks}</span></span>
          <button class="go" type="button" id="whogo">Continue as ${v.name} →</button>${small}`;
+    $("who").hidden = chosen;                  // once chosen, the picker steps aside: your analyst lives in the search box
+    $("boxav").hidden = !chosen; $("boxav").innerHTML = face(avatar);
+    $("ask").classList.toggle("has-av", chosen);
     $("avbtn").innerHTML = face(avatar);
     $("avbtn").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
-    $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Your guesses are kept separately for each one.</p>`;
+    $("boxav").setAttribute("aria-label", `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}. Switch analyst`);
+    $("boxav").title = `Reading as ${AV[avatar].name}, the ${AV[avatar].role.toLowerCase()}`;
+    $("boxmenu").innerHTML = $("avmenu").innerHTML = `<p class="set-title">Read as</p>${Object.entries(AV).map(([a, v]) => `<button class="av-opt" type="button" data-avatar="${a}" aria-pressed="${a === avatar}">${face(a)}<span><b>${v.name}</b><small>${v.role} · "${v.says}"</small></span></button>`).join("")}<p class="av-note">Your guesses are kept separately for each one.</p>`;
   };
-  const closeAvMenu = () => { $("avmenu").hidden = true; $("avbtn").setAttribute("aria-expanded", "false"); };
+  const closeAvMenu = () => { $("avmenu").hidden = $("boxmenu").hidden = true; $("avbtn").setAttribute("aria-expanded", "false"); $("boxav").setAttribute("aria-expanded", "false"); };
+  $("boxav").addEventListener("click", e => {
+    e.stopPropagation();
+    const open = $("boxmenu").hidden;
+    closeSettings(); $("boxmenu").hidden = !open; $("boxav").setAttribute("aria-expanded", String(open));
+  });
   $("avbtn").addEventListener("click", e => {
     e.stopPropagation();
     const open = $("avmenu").hidden;
@@ -767,10 +785,10 @@
     paintWho(); data = other = null; render(); $("q").focus();
   });
   document.addEventListener("click", e => {
-    if ($("avmenu").hidden || e.target.closest("#avmenu, #avbtn")) return;
+    if (($("avmenu").hidden && $("boxmenu").hidden) || e.target.closest("#avmenu, #avbtn, #boxmenu, #boxav")) return;
     closeAvMenu(); e.preventDefault(); e.stopPropagation();
   }, true);
-  document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("avmenu").hidden) closeAvMenu(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && !($("avmenu").hidden && $("boxmenu").hidden)) closeAvMenu(); });
 
   // ---------- Settings: behind one button in the top bar ----------
   const closeSettings = () => { $("switches").hidden = true; $("gear").setAttribute("aria-expanded", "false"); };
